@@ -1,14 +1,16 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, ChefHat } from "lucide-react";
+import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, ChefHat, Clock, CalendarClock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const links = [
-  { to: "/merchant/dashboard",  icon: LayoutDashboard,  label: "Dashboard" },
-  { to: "/merchant/orders",     icon: ListOrdered,       label: "Incoming Orders" },
-  { to: "/merchant/menu",       icon: UtensilsCrossed,   label: "Menu Manager" },
-  { to: "/merchant/party",      icon: PartyPopper,       label: "Party Requests" },
-  { to: "/merchant/settings",   icon: Settings,          label: "Canteen Settings" },
-  { to: "/merchant/analytics",  icon: BarChart2,         label: "Analytics" },
+  { to: "/merchant/dashboard",     icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/merchant/orders",        icon: ListOrdered,     label: "Incoming Orders" },
+  { to: "/merchant/order-history", icon: Clock,           label: "Order History" },
+  { to: "/merchant/menu",          icon: UtensilsCrossed, label: "Menu Manager" },
+  { to: "/merchant/party",         icon: PartyPopper,     label: "Party Requests" },
+  { to: "/merchant/party-history", icon: CalendarClock,   label: "Party History" },
+  { to: "/merchant/settings",      icon: Settings,        label: "Canteen Settings" },
+  { to: "/merchant/analytics",     icon: BarChart2,       label: "Analytics" },
 ];
 
 export default function MerchantSidebar({ collapsed }) {
