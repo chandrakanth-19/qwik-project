@@ -10,6 +10,7 @@ export const authAPI = {
   forgotPassword: (d) => api.post("/auth/forgot-password", d),
   resetPassword:  (d) => api.post("/auth/reset-password", d),
   logout:         ()  => api.post("/auth/logout"),
+  forgotVerificationOTP: (d) => api.post("/auth/resend-otp", d),
 };
 
 // ── USER ─────────────────────────────────────────────────────

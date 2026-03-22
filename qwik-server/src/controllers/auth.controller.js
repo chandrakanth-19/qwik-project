@@ -133,3 +133,21 @@ exports.logout = asyncHandler(async (req, res) => {
   // JWT is stateless; client discards token. Return confirmation.
   ok(res, null, "Logged out successfully");
 });
+
+// ── POST /api/auth/resend-otp ─────────────────────────────────
+exports.resendVerificationOTP = asyncHandler(async (req, res) => {
+  const { email, phone } = req.body;
+  const query = email ? { email } : { phone };
+
+  const user = await User.findOne(query);
+  if (!user) return badReq(res, "No account found with this email or phone");
+  if (user.is_verified) return badReq(res, "Account is already verified");
+
+  const otp = generateOTP();
+  await saveOTPToUser(user, otp);
+
+  if (email) await sendEmailOTP(email, otp);
+  else await sendSMSOTP(phone, otp);
+
+  ok(res, { user_id: user._id }, "OTP sent successfully");
+});

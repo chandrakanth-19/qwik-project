@@ -8,8 +8,12 @@ const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","H
 
 export default function Register() {
   const navigate = useNavigate();
-  const [step, setStep]   = useState(1); // 1=form, 2=otp
-  const [userId, setUserId] = useState(null);
+  const [step, setStep]     = useState(
+    sessionStorage.getItem("pending_reg_user_id") ? 2 : 1
+  );
+  const [userId, setUserId] = useState(
+    sessionStorage.getItem("pending_reg_user_id") || null
+  );
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -27,10 +31,18 @@ export default function Register() {
       if (!payload.phone) delete payload.phone;
       const { data } = await authAPI.register(payload);
       setUserId(data.data.user_id);
+      sessionStorage.setItem("pending_reg_user_id", data.data.user_id);
       setStep(2);
       toast.success("OTP sent! Check your email or phone.");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
+    const msg = err.response?.data?.message || "Registration failed";
+
+    // Account exists but unverified — go straight to OTP step
+    if (msg.toLowerCase().includes("already exists")) {
+      toast.error("Account already exists. If you registered before, check your email for OTP or request a new one from the login page.");
+    } else {
+      toast.error(msg);
+    }
     } finally {
       setLoading(false);
     }
@@ -41,7 +53,8 @@ export default function Register() {
     setLoading(true);
     try {
       await authAPI.verifyOTP({ user_id: userId, otp });
-      toast.success("Account verified! Please log in.");
+      sessionStorage.removeItem("pending_reg_user_id");
+      toast.success("Account verified successfully! Please log in.");
       navigate("/login");
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP");
