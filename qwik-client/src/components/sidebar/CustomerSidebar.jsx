@@ -1,15 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { Home, ShoppingBag, ShoppingCart, Clock, PartyPopper, User, LogOut, ChefHat } from "lucide-react";
+import { Home, ShoppingCart, Clock, PartyPopper, CalendarClock, User, LogOut, ChefHat } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import useCartStore from "../../store/cartStore";
 
 const links = [
-  { to: "/home",          icon: Home,         label: "Browse" },
-  { to: "/orders",        icon: ShoppingBag,  label: "My Orders" },
-  { to: "/cart",          icon: ShoppingCart, label: "Cart" },
-  { to: "/history",       icon: Clock,        label: "Order History" },
-  { to: "/party-mode",    icon: PartyPopper,  label: "Party Mode" },
-  { to: "/profile",       icon: User,         label: "Profile" },
+  { to: "/home",          icon: Home,          label: "Browse" },
+  { to: "/cart",          icon: ShoppingCart,  label: "Cart" },
+  { to: "/history",       icon: Clock,         label: "Order History" },
+  { to: "/party-mode",    icon: PartyPopper,   label: "Party Mode" },
+  { to: "/party-history", icon: CalendarClock, label: "Party History" },
+  { to: "/profile",       icon: User,          label: "Profile" },
 ];
 
 export default function CustomerSidebar({ collapsed }) {

@@ -7,6 +7,10 @@ import AuthLayout from "./components/layout/AuthLayout";
 import ManageMerchants from "./pages/admin/ManageMerchants";
 import ReviewPage from "./pages/customer/ReviewPage";
 
+import PartyHistory from "./pages/customer/PartyHistory";
+import MerchantOrderHistory from "./pages/merchant/OrderHistory";
+import MerchantPartyHistory from "./pages/merchant/PartyHistory";
+
 
 // Guards
 import { ProtectedRoute, AdminProtectedRoute } from "./components";
@@ -91,6 +95,8 @@ export default function App() {
       <Route path="/pay/:orderId"   element={<CustomerRoute><PaymentPage /></CustomerRoute>} />
       <Route path="/party-mode"     element={<CustomerRoute><PartyMode /></CustomerRoute>} />
       <Route path="/profile"        element={<CustomerRoute><Profile /></CustomerRoute>} />
+      <Route path="/party-history" element={<CustomerRoute><PartyHistory /></CustomerRoute>} />
+
 
       {/* ── Merchant routes ───────────────────────────────── */}
       <Route path="/merchant/dashboard" element={<MerchantRoute><MerchantDashboard /></MerchantRoute>} />
@@ -99,6 +105,8 @@ export default function App() {
       <Route path="/merchant/party"     element={<MerchantRoute><PartyRequests /></MerchantRoute>} />
       <Route path="/merchant/settings"  element={<MerchantRoute><CanteenSettings /></MerchantRoute>} />
       <Route path="/merchant/analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />
+      <Route path="/merchant/order-history" element={<MerchantRoute><MerchantOrderHistory /></MerchantRoute>} />
+      <Route path="/merchant/party-history" element={<MerchantRoute><MerchantPartyHistory /></MerchantRoute>} />
 
       {/* ── Admin routes ──────────────────────────────────── */}
       <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
