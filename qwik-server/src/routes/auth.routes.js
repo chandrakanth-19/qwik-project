@@ -9,5 +9,6 @@ router.post("/admin-register",   ctrl.adminRegister);
 router.post("/forgot-password",  ctrl.forgotPassword);
 router.post("/reset-password",   ctrl.resetPassword);
 router.post("/logout",           ctrl.logout);
+router.post("/resend-otp", ctrl.resendVerificationOTP);
 
 module.exports = router;
