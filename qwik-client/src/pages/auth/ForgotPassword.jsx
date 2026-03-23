@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";  // 👈 added
 import AuthLayout from "../../components/layout/AuthLayout";
 import { authAPI } from "../../api";
 
@@ -12,6 +13,7 @@ export default function ForgotPassword() {
   const [email, setEmail]   = useState("");
   const [otp, setOtp]       = useState("");
   const [newPwd, setNewPwd] = useState("");
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -56,8 +58,15 @@ export default function ForgotPassword() {
         <input className="input text-center tracking-[0.4em] font-bold text-xl"
           placeholder="OTP" maxLength={6} value={otp}
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} required />
-        <input className="input" type="password" placeholder="New password (min 6 chars)"
-          value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={6} />
+        {/* 👇 replaced */}
+        <div className="relative">
+          <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="New password (min 6 chars)"
+            value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={6} />
+          <button type="button" onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? "Resetting..." : "Reset Password"}
         </button>
