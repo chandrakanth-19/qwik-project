@@ -43,8 +43,15 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.clear();
-      window.location.href = "/login";
+      const msg = err.response?.data?.message || "";
+      if (msg.toLowerCase().includes("blocked")) {
+        localStorage.clear();
+        toast.error("Your account has been blocked by admin.");
+        window.location.href = "/login";
+      } else {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
     }
     if (err.response?.status === 404) {
       toast.error(err.response?.data?.message || "Not found.");
