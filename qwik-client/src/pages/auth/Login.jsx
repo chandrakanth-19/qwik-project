@@ -15,25 +15,27 @@ export default function Login() {
   const [otp, setOtp]             = useState("");       // NEW
   const [verifying, setVerifying] = useState(false);   // NEW
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await login(form);
-      toast.success("Welcome back!");
-    } catch (err) {
-      const msg = err.response?.data?.message || "Login failed";
-      // Catch unverified account specifically
-      if (msg.toLowerCase().includes("verify")) {
-        setUnverified(true);
-        toast.error("Account not verified. Request a new OTP below.");
-      } else {
-        toast.error(msg);
-      }
-    } finally {
-      setLoading(false);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setUnverified(false); // reset before each attempt
+  try {
+    await login(form);
+    toast.success("Welcome back!");
+  } catch (err) {
+    const msg = err.response?.data?.message || "Login failed";
+    if (
+      msg.toLowerCase().includes("verify") ||
+      msg.toLowerCase().includes("verified")
+    ) {
+      setUnverified(true); // this must stay true after loading stops
+    } else {
+      toast.error(msg);
     }
-  };
+  } finally {
+    setLoading(false); // this runs but doesn't touch unverified state
+  }
+};
 
   // Resend OTP for unverified account
   const handleResendOTP = async () => {
@@ -91,7 +93,7 @@ export default function Login() {
         </button>
       </form>
 
-      {/* Unverified account section */}
+      {/* This stays visible as long as unverified === true */}
       {unverified && !otpSent && (
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800 font-medium mb-2">
@@ -100,8 +102,11 @@ export default function Login() {
           <p className="text-xs text-yellow-700 mb-3">
             Click below to receive a new OTP on your email.
           </p>
-          <button onClick={handleResendOTP} disabled={loading}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-2 rounded-lg disabled:opacity-50">
+          <button
+            onClick={handleResendOTP}
+            disabled={loading}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-2 rounded-lg disabled:opacity-50"
+          >
             {loading ? "Sending OTP..." : "Send Verification OTP"}
           </button>
         </div>
