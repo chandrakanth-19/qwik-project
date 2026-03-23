@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";  // 👈 added
 import AuthLayout from "../../components/layout/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
@@ -9,16 +10,17 @@ export default function Login() {
   const { login } = useAuth();
   const [form, setForm]           = useState({ email: "", password: "" });
   const [loading, setLoading]     = useState(false);
-  const [unverified, setUnverified] = useState(false); // NEW
-  const [userId, setUserId]       = useState(null);    // NEW
-  const [otpSent, setOtpSent]     = useState(false);   // NEW
-  const [otp, setOtp]             = useState("");       // NEW
-  const [verifying, setVerifying] = useState(false);   // NEW
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
+  const [unverified, setUnverified] = useState(false);
+  const [userId, setUserId]       = useState(null);
+  const [otpSent, setOtpSent]     = useState(false);
+  const [otp, setOtp]             = useState("");
+  const [verifying, setVerifying] = useState(false);
 
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
-  setUnverified(false); // reset before each attempt
+  setUnverified(false);
   try {
     await login(form);
     toast.success("Welcome back!");
@@ -39,11 +41,10 @@ catch (err) {
   }
 } 
   finally {
-    setLoading(false); // this runs but doesn't touch unverified state
+    setLoading(false);
   }
 };
 
-  // Resend OTP for unverified account
   const handleResendOTP = async () => {
     setLoading(true);
     try {
@@ -56,7 +57,6 @@ catch (err) {
     } finally { setLoading(false); }
   };
 
-  // Verify OTP inline on login page
   const handleVerify = async (e) => {
     e.preventDefault();
     setVerifying(true);
@@ -83,14 +83,20 @@ catch (err) {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input className="input" type="password" placeholder="••••••••"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required />
+          {/* 👇 replaced */}
+          <div className="relative">
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
         <div className="flex justify-end">
-          <Link to="/forgot-password"
-            className="text-sm text-brand-600 hover:underline">
+          <Link to="/forgot-password" className="text-sm text-brand-600 hover:underline">
             Forgot password?
           </Link>
         </div>
@@ -99,7 +105,6 @@ catch (err) {
         </button>
       </form>
 
-      {/* This stays visible as long as unverified === true */}
       {unverified && !otpSent && (
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800 font-medium mb-2">
@@ -118,7 +123,6 @@ catch (err) {
         </div>
       )}
 
-      {/* OTP input after resend */}
       {otpSent && (
         <form onSubmit={handleVerify}
           className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
