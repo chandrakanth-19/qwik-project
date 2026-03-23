@@ -10,6 +10,7 @@ import ReviewPage from "./pages/customer/ReviewPage";
 import PartyHistory from "./pages/customer/PartyHistory";
 import MerchantOrderHistory from "./pages/merchant/OrderHistory";
 import MerchantPartyHistory from "./pages/merchant/PartyHistory";
+import MerchantProfile from "./pages/merchant/MerchantProfile";
 
 
 // Guards
@@ -107,6 +108,7 @@ export default function App() {
       <Route path="/merchant/analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />
       <Route path="/merchant/order-history" element={<MerchantRoute><MerchantOrderHistory /></MerchantRoute>} />
       <Route path="/merchant/party-history" element={<MerchantRoute><MerchantPartyHistory /></MerchantRoute>} />
+      <Route path="/merchant/profile" element={<MerchantRoute><MerchantProfile /></MerchantRoute>} />
 
       {/* ── Admin routes ──────────────────────────────────── */}
       <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

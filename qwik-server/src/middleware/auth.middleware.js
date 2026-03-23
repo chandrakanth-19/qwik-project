@@ -13,7 +13,7 @@ const protect = asyncHandler(async (req, res, next) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(decoded.id).select("-password");
   if (!user) return unauth(res, "User no longer exists");
-  if (user.is_blocked) return unauth(res, "Your account has been blocked");
+  if (user.is_blocked) return unauth(res, "Your account has been blocked by admin. Please contact support.");
 
   req.user = user;
   next();

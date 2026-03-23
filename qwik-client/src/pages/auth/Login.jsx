@@ -22,17 +22,23 @@ const handleSubmit = async (e) => {
   try {
     await login(form);
     toast.success("Welcome back!");
-  } catch (err) {
-    const msg = err.response?.data?.message || "Login failed";
-    if (
-      msg.toLowerCase().includes("verify") ||
-      msg.toLowerCase().includes("verified")
-    ) {
-      setUnverified(true); // this must stay true after loading stops
-    } else {
-      toast.error(msg);
-    }
-  } finally {
+  } 
+catch (err) {
+  const msg = err.response?.data?.message || err.message || "Login failed";
+  if (msg.toLowerCase().includes("verify")) {
+    setUnverified(true);
+  } else if (msg.toLowerCase().includes("admin login page")) {
+    toast.error("invalid  credentials");
+  } else if (msg.toLowerCase().includes("invalid credentials") || err.response?.status === 401) {
+    toast.error("Account not found or wrong password. You may not have registered yet, or your account may have been deleted by admin.");
+  } else if (msg.toLowerCase().includes("blocked")) {
+  toast.error("Your account has been blocked by admin. Please contact support.");
+}
+   else {
+    toast.error(msg);
+  }
+} 
+  finally {
     setLoading(false); // this runs but doesn't touch unverified state
   }
 };
