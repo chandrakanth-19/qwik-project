@@ -20,14 +20,41 @@ export default function Register() {
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const [form, setForm] = useState({
     name: "", email: "", phone: "", password: "", role: "customer", hall_of_residence: "Hall 1", room_no: "",
   });
 
-  const isVisitor = !form.email;
+  const validatePhone = (phone) => {
+    if (!phone) {
+      setPhoneError("Phone number cannot be empty");
+      return false;
+    }
+    // strip spaces, dashes, +91 prefix for counting digits
+    const digits = phone.replace(/[\s\-\+]/g, "").replace(/^91/, "");
+    if (digits.length < 10) {
+      setPhoneError("Phone number is less than 10 digits");
+      return false;
+    }
+    if (digits.length > 10) {
+      setPhoneError("Phone number is more than 10 digits");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    // If no email, phone is required — validate it
+    if (!form.email) {
+      if (!validatePhone(form.phone)) return;
+    }
+
+    // If both email and phone provided, still validate phone
+    if (form.phone && !validatePhone(form.phone)) return;
+
     setLoading(true);
     try {
       const payload = { ...form };
@@ -54,10 +81,9 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await authAPI.verifyOTP({ user_id: userId, otp });
+      await authAPI.verifyOTP({ user_id: userId, otp });
       sessionStorage.removeItem("pending_reg_user_id");
       toast.success("Account verified! Logging you in...");
-      // Use the token returned directly from verifyOTP — no extra login call needed!
       await login({ email: form.email, password: form.password });
       toast.success("Welcome to Qwik! 🎉");
     } catch (err) {
@@ -115,8 +141,22 @@ export default function Register() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Phone <span className="text-gray-400 font-normal">(visitors — OTP via SMS)</span>
           </label>
-          <input className="input" type="tel" placeholder="+91 9999999999"
-            value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <input
+            className={`input ${phoneError ? "border-red-500 focus:ring-red-500" : ""}`}
+            type="tel"
+            placeholder="+91 9999999999"
+            value={form.phone}
+            onChange={(e) => {
+              setForm({ ...form, phone: e.target.value });
+              if (phoneError) validatePhone(e.target.value);
+            }}
+          />
+          {/* Error message shown below the input */}
+          {phoneError && (
+            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+              ⚠️ {phoneError}
+            </p>
+          )}
         </div>
 
         {form.role === "customer" && (
