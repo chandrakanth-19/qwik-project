@@ -130,8 +130,6 @@ export function Checkout() {
 // Order Tracking (polling)
 // ─────────────────────────────────────────────────────────────
 export function OrderTracking({ orderId }) {
-  const [prevStatus, setPrevStatus] = useState(null);
-const [showAccepted, setShowAccepted] = useState(false);
   const navigate = useNavigate();
   const [reconfirmLoading, setReconfirmLoading] = useState(false);
 
@@ -140,7 +138,6 @@ const [showAccepted, setShowAccepted] = useState(false);
     4000,
     (o) => o && TERMINAL_STATUSES.includes(o.status)
   );
-
 
   const handleReconfirm = async () => {
     setReconfirmLoading(true);
