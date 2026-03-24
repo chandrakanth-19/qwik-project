@@ -46,7 +46,11 @@ exports.verifyOTP = asyncHandler(async (req, res) => {
   await clearOTP(user);
 
   const token = signToken(user._id);
-  ok(res, { token, role: user.role }, "Account verified successfully");
+  ok(res, {
+  token,
+  role: user.role,
+  user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+}, "Account verified successfully");
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────
