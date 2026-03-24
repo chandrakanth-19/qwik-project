@@ -5,8 +5,50 @@ const connectDB = require("./src/config/db");
 const errorMiddleware = require("./src/middleware/error.middleware");
 
 dotenv.config();
-connectDB();
 
+const startServer = async () => {
+  try {
+    await connectDB(); // wait for DB safely
+
+    console.log("✅ DB connection attempted");
+
+    const app = express();
+
+    // Middleware
+    app.use(cors({ origin: true, credentials: true }));
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    // Routes
+    app.use("/api/auth", require("./src/routes/auth.routes"));
+    app.use("/api/users", require("./src/routes/user.routes"));
+    app.use("/api/canteens", require("./src/routes/canteen.routes"));
+    app.use("/api/menu", require("./src/routes/menu.routes"));
+    app.use("/api/orders", require("./src/routes/order.routes"));
+    app.use("/api/reservations", require("./src/routes/reservation.routes"));
+    app.use("/api/payments", require("./src/routes/payment.routes"));
+    app.use("/api/admin", require("./src/routes/admin.routes"));
+
+    // Health check
+    app.get("/api/health", (req, res) =>
+      res.json({ status: "ok", time: new Date() })
+    );
+
+    // Error handler
+    app.use(errorMiddleware);
+
+    const PORT = process.env.PORT || 5000;
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
+  } catch (err) {
+    console.error("❌ Server failed to start:", err.message);
+  }
+};
+
+startServer();
 const app = express();
 
 // ── Middleware ──────────────────────────────────────────────
