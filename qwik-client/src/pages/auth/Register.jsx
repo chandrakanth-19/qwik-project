@@ -142,15 +142,20 @@ export default function Register() {
             Phone <span className="text-gray-400 font-normal">(visitors — OTP via SMS)</span>
           </label>
           <input
-            className={`input ${phoneError ? "border-red-500 focus:ring-red-500" : ""}`}
-            type="tel"
-            placeholder="+91 9999999999"
-            value={form.phone}
-            onChange={(e) => {
-              setForm({ ...form, phone: e.target.value });
-              if (phoneError) validatePhone(e.target.value);
-            }}
-          />
+  className={`input ${phoneError ? "border-red-500 focus:ring-red-500" : ""}`}
+  type="tel"
+  placeholder="9999999999"
+  value={form.phone}
+  onChange={(e) => {
+    const digits = e.target.value.replace(/\D/g, ""); // only numbers
+    if (digits.length > 10) {
+      setPhoneError("Phone number cannot be larger than 10 digits");
+      return; // stop typing after 10 digits
+    }
+    setForm({ ...form, phone: digits });
+    if (phoneError) validatePhone(digits);
+  }}
+/>
           {/* Error message shown below the input */}
           {phoneError && (
             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
