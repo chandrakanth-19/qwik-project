@@ -34,15 +34,9 @@ export function AdminLogin() {
     try {
       await adminLogin(form);
       toast.success("Welcome, Super Admin!");
-    } 
-    catch (err) {
-  const msg = err.response?.data?.message || "Login failed";
-  if (err.response?.status === 401 || msg.toLowerCase().includes("invalid")) {
-    toast.error("No admin account found with these credentials.");
-  } else {
-    toast.error(msg);
-  }
-} finally {
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Login failed");
+    } finally {
       setLoading(false);
     }
   };
