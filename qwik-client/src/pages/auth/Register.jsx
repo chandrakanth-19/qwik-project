@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";  // 👈 added
+import { Eye, EyeOff } from "lucide-react";
 import AuthLayout from "../../components/layout/AuthLayout";
 import { authAPI } from "../../api";
+import { useAuth } from "../../hooks/useAuth";
 
 const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","Hall 8","Hall 9","Hall 10","Hall 11","Hall 12","Hall 13","Hall 14","Visitors"];
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [step, setStep]     = useState(
     sessionStorage.getItem("pending_reg_user_id") ? 2 : 1
   );
@@ -17,7 +19,7 @@ export default function Register() {
   );
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // 👈 added
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", password: "", role: "customer", hall_of_residence: "Hall 1", room_no: "",
   });
@@ -37,12 +39,12 @@ export default function Register() {
       setStep(2);
       toast.success("OTP sent! Check your email or phone.");
     } catch (err) {
-    const msg = err.response?.data?.message || "Registration failed";
-    if (msg.toLowerCase().includes("already exists")) {
-      toast.error("Account already exists. If you registered before, check your email for OTP or request a new one from the login page.");
-    } else {
-      toast.error(msg);
-    }
+      const msg = err.response?.data?.message || "Registration failed";
+      if (msg.toLowerCase().includes("already exists")) {
+        toast.error("Account already exists. If you registered before, check your email for OTP or request a new one from the login page.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,10 +54,12 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      await authAPI.verifyOTP({ user_id: userId, otp });
+      const { data } = await authAPI.verifyOTP({ user_id: userId, otp });
       sessionStorage.removeItem("pending_reg_user_id");
-      toast.success("Account verified successfully! Please log in.");
-      navigate("/login");
+      toast.success("Account verified! Logging you in...");
+      // Use the token returned directly from verifyOTP — no extra login call needed!
+      await login({ email: form.email, password: form.password });
+      toast.success("Welcome to Qwik! 🎉");
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP");
     } finally {
@@ -134,7 +138,6 @@ export default function Register() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          {/* 👇 replaced */}
           <div className="relative">
             <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters"
               value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
