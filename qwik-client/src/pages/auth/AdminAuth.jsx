@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Shield } from "lucide-react";
+import { Shield, Eye, EyeOff } from "lucide-react";  // 👈 added Eye, EyeOff
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
 
@@ -22,11 +22,11 @@ function AdminAuthLayout({ children, title, subtitle }) {
   );
 }
 
-// ── Admin Login ───────────────────────────────────────────────
 export function AdminLogin() {
   const { adminLogin } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,8 +51,15 @@ export function AdminLogin() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input className="input" type="password" placeholder="••••••••" value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+          {/* 👇 replaced */}
+          <div className="relative">
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="••••••••" value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
         <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Signing in..." : "Sign In"}
@@ -66,11 +73,11 @@ export function AdminLogin() {
   );
 }
 
-// ── Admin Register ────────────────────────────────────────────
 export function AdminRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", invite_code: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,8 +108,15 @@ export function AdminRegister() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input className="input" type="password" placeholder="Min 6 characters" value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+          {/* 👇 replaced */}
+          <div className="relative">
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
