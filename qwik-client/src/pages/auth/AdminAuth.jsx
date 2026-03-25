@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Shield, Eye, EyeOff } from "lucide-react";  // 👈 added Eye, EyeOff
+import { Shield } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
 
@@ -22,20 +22,33 @@ function AdminAuthLayout({ children, title, subtitle }) {
   );
 }
 
+// ── Admin Login ───────────────────────────────────────────────
 export function AdminLogin() {
   const { adminLogin } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // 👈 added
+  const [notFound, setNotFound] = useState(false);   // FIX 5 for admin
+  const [wrongPass, setWrongPass] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setNotFound(false);
+    setWrongPass(false);
     try {
       await adminLogin(form);
       toast.success("Welcome, Super Admin!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      const raw = err.response?.data?.message || "Login failed";
+      const msg = raw.toLowerCase();
+      // FIX 5: no account found for admin
+      if (msg.includes("no admin account") || msg.includes("not found")) {
+        setNotFound(true);
+      } else if (msg.includes("invalid admin credentials") || msg.includes("invalid credentials")) {
+        setWrongPass(true);
+      } else {
+        toast.error(raw);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,20 +64,34 @@ export function AdminLogin() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          {/* 👇 replaced */}
-          <div className="relative">
-            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="••••••••" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <input className="input" type="password" placeholder="••••••••" value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })} required />
         </div>
         <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
+
+      {/* FIX 5: No admin account found */}
+      {notFound && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800 font-semibold mb-1">⚠️ No account found</p>
+          <p className="text-xs text-red-700">
+            No admin account exists with this email. Please register with a valid invite code.
+          </p>
+        </div>
+      )}
+
+      {/* Wrong password */}
+      {wrongPass && (
+        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-sm text-orange-800 font-semibold mb-1">❌ Incorrect password</p>
+          <p className="text-xs text-orange-700">
+            The password you entered is incorrect. Please try again.
+          </p>
+        </div>
+      )}
+
       <p className="text-center text-sm text-gray-500 mt-4">
         First time?{" "}
         <Link to="/admin/register" className="text-amber-600 font-medium hover:underline">Register with invite code</Link>
@@ -73,11 +100,11 @@ export function AdminLogin() {
   );
 }
 
+// ── Admin Register ────────────────────────────────────────────
 export function AdminRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", invite_code: "" });
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // 👈 added
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,15 +135,8 @@ export function AdminRegister() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          {/* 👇 replaced */}
-          <div className="relative">
-            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <input className="input" type="password" placeholder="Min 6 characters" value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
