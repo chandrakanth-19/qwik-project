@@ -1,7 +1,8 @@
 import { Navigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
+import useCartStore from "../store/cartStore";
 import { STATUS_COLORS } from "../utils/constants";
-import { Star } from "lucide-react";
+import { Star, Plus, Minus } from "lucide-react";
 
 // ── Spinner ──────────────────────────────────────────────────
 export function Spinner({ size = "md" }) {
@@ -51,8 +52,16 @@ export function StarRating({ value = 0, onChange, size = 16 }) {
   );
 }
 
-// ── FoodCard ─────────────────────────────────────────────────
+// ── FoodCard — FIX 3: cart counter next to Add button ────────
 export function FoodCard({ item, onAdd }) {
+  // FIX 3: read qty from cart store directly
+  const cartQty  = useCartStore((s) => {
+    const found = s.items.find((i) => i.item_id === item._id);
+    return found ? found.qty : 0;
+  });
+  const updateQty  = useCartStore((s) => s.updateQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+
   return (
     <div className="card p-4 flex gap-4">
       {item.photo_url && (
@@ -78,17 +87,38 @@ export function FoodCard({ item, onAdd }) {
             <p className="text-xs text-gray-400">{item.prep_time_mins} min</p>
           </div>
         </div>
-        <button
-          onClick={() => onAdd(item)}
-          disabled={!item.is_available}
-          className={`mt-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-            item.is_available
-              ? "bg-brand-400 text-white hover:bg-brand-600"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {item.is_available ? "Add" : "Unavailable"}
-        </button>
+
+        {/* FIX 3: show counter if in cart, else show Add button */}
+        <div className="mt-2">
+          {!item.is_available ? (
+            <button disabled className="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+              Unavailable
+            </button>
+          ) : cartQty > 0 ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => cartQty === 1 ? removeItem(item._id) : updateQty(item._id, cartQty - 1)}
+                className="w-7 h-7 rounded-full bg-brand-400 text-white flex items-center justify-center hover:bg-brand-600 transition-colors"
+              >
+                <Minus size={12} />
+              </button>
+              <span className="w-6 text-center text-sm font-bold text-brand-600">{cartQty}</span>
+              <button
+                onClick={() => onAdd(item)}
+                className="w-7 h-7 rounded-full bg-brand-400 text-white flex items-center justify-center hover:bg-brand-600 transition-colors"
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onAdd(item)}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-brand-400 text-white hover:bg-brand-600 transition-colors"
+            >
+              Add
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
