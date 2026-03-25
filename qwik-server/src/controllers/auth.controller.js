@@ -13,7 +13,7 @@ const signToken = (id) =>
 
 // ── POST /api/auth/register ──────────────────────────────────
 exports.register = asyncHandler(async (req, res) => {
-  const { name, email, phone, password, role, hall_of_residence } = req.body;
+  const { name, email, phone, password, role, hall_of_residence, canteen_name, canteen_hall } = req.body;
 
   if (!email && !phone) return badReq(res, "Provide email or phone number");
   if (email && !email.endsWith("@iitk.ac.in") && role !== ROLES.MERCHANT)
@@ -22,7 +22,12 @@ exports.register = asyncHandler(async (req, res) => {
   const existing = await User.findOne({ $or: [{ email }, { phone }] });
   if (existing) return badReq(res, "Account already exists with this email or phone");
 
-  const user = await User.create({ name, email, phone, password, role: role || ROLES.CUSTOMER, hall_of_residence });
+  const userData = { name, email, phone, password, role: role || ROLES.CUSTOMER, hall_of_residence };
+  // FIX 10: store canteen request for merchant
+  if (role === ROLES.MERCHANT && (canteen_name || canteen_hall)) {
+    userData.canteen_request = { canteen_name, canteen_hall };
+  }
+  const user = await User.create(userData);
 
   const otp = generateOTP();
   await saveOTPToUser(user, otp);
@@ -46,7 +51,7 @@ exports.verifyOTP = asyncHandler(async (req, res) => {
   await clearOTP(user);
 
   const token = signToken(user._id);
-  ok(res, { token, role: user.role }, "Account verified successfully");
+  ok(res, { token, role: user.role, user: { _id: user._id, name: user.name, email: user.email, role: user.role } }, "Account verified successfully");
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────
@@ -57,10 +62,20 @@ exports.login = asyncHandler(async (req, res) => {
 
   const query = email ? { email } : { phone };
   const user = await User.findOne(query).select("+password");
-  if (!user || !(await user.matchPassword(password)))
-    return unauth(res, "Invalid credentials");
+  // FIX 5: distinguish "no account" from "wrong password"
+  if (!user) return unauth(res, "No account found with this email. Please register.");
+  if (!(await user.matchPassword(password))) return unauth(res, "Invalid credentials");
+  // FIX 4: admin trying user login portal
+  if (user.role === ROLES.ADMIN) return unauth(res, "Admins must use the admin login page.");
   if (!user.is_verified) return unauth(res, "Please verify your account first");
-  if (user.is_blocked) return unauth(res, "Your account has been blocked");
+  // FIX 10: merchant verified (email OTP done) but not yet approved by admin (no canteen assigned yet)
+  if (user.role === ROLES.MERCHANT) {
+    const Canteen = require("../models/Canteen.model");
+    const canteen = await Canteen.findOne({ manager_id: user._id });
+    if (!canteen) return unauth(res, "PENDING_ADMIN_APPROVAL");
+  }
+  // FIX 6: blocked message
+  if (user.is_blocked) return unauth(res, "Your account has been blocked by the admin");
 
   const token = signToken(user._id);
   ok(res, {
@@ -76,8 +91,8 @@ exports.adminLogin = asyncHandler(async (req, res) => {
   if (!email || !password) return badReq(res, "Email and password required");
 
   const user = await User.findOne({ email, role: ROLES.ADMIN }).select("+password");
-  if (!user || !(await user.matchPassword(password)))
-    return unauth(res, "Invalid admin credentials");
+  if (!user) return unauth(res, "No admin account found with this email.");
+  if (!(await user.matchPassword(password))) return unauth(res, "Invalid admin credentials");
 
   const token = signToken(user._id);
   ok(res, { token, role: user.role, user: { _id: user._id, name: user.name } }, "Admin login successful");
