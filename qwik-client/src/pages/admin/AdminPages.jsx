@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ShieldOff, ShieldCheck, Plus, Pencil, Trash2 } from "lucide-react";
+import { ShieldOff, ShieldCheck, Pencil, Trash2, X, Check } from "lucide-react";
 import { adminAPI } from "../../api";
 import { Spinner } from "../../components";
 
@@ -61,31 +61,41 @@ export function UserManagement() {
 }
 
 // ── Canteen Management ────────────────────────────────────────
+// FIX 1: Removed "Add Canteen" button (canteens are created via merchant approval flow)
+//         Admin can only Edit and Deactivate existing canteens
 export function CanteenManagement() {
-  const [canteens, setCanteens] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving,   setSaving]   = useState(false); const [merchants, setMerchants] = useState([]);
-  const [form, setForm] = useState({
-    name: "", hall: "", location: "", opening_time: "08:00", closing_time: "22:00", contact: "", manager_id: "",
-  });
+  const [canteens,  setCanteens]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [editing,   setEditing]   = useState(null);  // canteen being edited
+  const [editForm,  setEditForm]  = useState({});
 
-  const load = () => adminAPI.getCanteens().then(({ data }) => { setCanteens(data.data); setLoading(false); });
-  useEffect(() => {
-    load();
-    adminAPI.getApprovedMerchants().then(({ data }) => setMerchants(data.data));
-  }, []);
+  const load = () =>
+    adminAPI.getCanteens().then(({ data }) => { setCanteens(data.data); setLoading(false); });
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
+  useEffect(() => { load(); }, []);
+
+  const openEdit = (c) => {
+    setEditing(c._id);
+    setEditForm({
+      name:         c.name,
+      hall:         c.hall || "",
+      location:     c.location || "",
+      opening_time: c.opening_time || "08:00",
+      closing_time: c.closing_time || "22:00",
+      contact:      c.contact || "",
+    });
+  };
+
+  const handleEdit = async (id) => {
     setSaving(true);
     try {
-      await adminAPI.addCanteen(form);
-      toast.success("Canteen added");
-      setShowForm(false);
+      await adminAPI.updateCanteen(id, editForm);
+      toast.success("Canteen updated");
+      setEditing(null);
       await load();
     } catch (err) {
-      toast.error("Failed to add canteen");
+      toast.error("Failed to update canteen");
     } finally { setSaving(false); }
   };
 
@@ -102,80 +112,91 @@ export function CanteenManagement() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">Canteen Management</h1>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
-          <Plus size={16} /> Add Canteen
-        </button>
+        {/* FIX 1: No "Add Canteen" button — canteens created automatically on merchant approval */}
+        <p className="text-xs text-gray-400">Canteens are created when merchants are approved</p>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleAdd} className="card p-5 mb-4 border-amber-300 border">
-          <h2 className="font-semibold mb-3">New Canteen</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Canteen Name</label>
-              <input className="input text-sm" required value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Hall</label>
-              <input className="input text-sm" value={form.hall}
-                onChange={(e) => setForm({ ...form, hall: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Opening Time</label>
-              <input className="input text-sm" type="time" value={form.opening_time}
-                onChange={(e) => setForm({ ...form, opening_time: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Closing Time</label>
-              <input className="input text-sm" type="time" value={form.closing_time}
-                onChange={(e) => setForm({ ...form, closing_time: e.target.value })} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Contact</label>
-              <input className="input text-sm" value={form.contact}
-                onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-            </div>
-              <div className="sm:col-span-2">
-    <label className="block text-xs font-medium text-gray-600 mb-1">
-      Assign to Merchant
-    </label>
-    <select className="input text-sm" value={form.manager_id}
-      onChange={(e) => setForm({ ...form, manager_id: e.target.value })}>
-      <option value="">Select merchant</option>
-      {merchants.map((m) => (
-        <option key={m._id} value={m._id}>{m.name} — {m.email}</option>
-      ))}
-    </select>
-  </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="btn-primary text-sm">
-              {saving ? "Adding..." : "Add Canteen"}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
-          </div>
-        </form>
-      )}
-
       <div className="space-y-3">
+        {canteens.length === 0 && (
+          <p className="text-gray-400 text-center py-12">No canteens yet. Approve a merchant to create one.</p>
+        )}
         {canteens.map((c) => (
-          <div key={c._id} className={`card p-4 flex items-center justify-between ${!c.is_active ? "opacity-50" : ""}`}>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-semibold">{c.name}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_open ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                  {c.is_open ? "Open" : "Closed"}
-                </span>
-                {!c.is_active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Deactivated</span>}
+          <div key={c._id} className={`card overflow-hidden ${!c.is_active ? "opacity-50" : ""}`}>
+            {/* Canteen summary row */}
+            <div className="p-4 flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold">{c.name}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_open ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {c.is_open ? "Open" : "Closed"}
+                  </span>
+                  {!c.is_active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Deactivated</span>}
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {c.hall || c.location || "—"} · Manager: {c.manager_id?.name || "None"}
+                </p>
+                <p className="text-xs text-gray-400">{c.opening_time} – {c.closing_time} · {c.contact || "No contact"}</p>
               </div>
-              <p className="text-sm text-gray-500">{c.hall || c.location} · {c.manager_id?.name || "No manager"}</p>
-              <p className="text-xs text-gray-400">{c.opening_time} – {c.closing_time}</p>
+
+              {c.is_active && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* FIX 1: Edit button */}
+                  <button
+                    onClick={() => editing === c._id ? setEditing(null) : openEdit(c)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                    title="Edit canteen"
+                  >
+                    {editing === c._id ? <X size={15} /> : <Pencil size={15} />}
+                  </button>
+                  <button onClick={() => deactivate(c._id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg" title="Deactivate">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              )}
             </div>
-            {c.is_active && (
-              <button onClick={() => deactivate(c._id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg">
-                <Trash2 size={16} />
-              </button>
+
+            {/* Inline edit form */}
+            {editing === c._id && (
+              <div className="border-t bg-gray-50 p-4">
+                <p className="text-sm font-medium text-gray-700 mb-3">Edit Canteen Details</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Canteen Name</label>
+                    <input className="input text-sm" value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Hall</label>
+                    <input className="input text-sm" value={editForm.hall}
+                      onChange={(e) => setEditForm({ ...editForm, hall: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Opening Time</label>
+                    <input className="input text-sm" type="time" value={editForm.opening_time}
+                      onChange={(e) => setEditForm({ ...editForm, opening_time: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Closing Time</label>
+                    <input className="input text-sm" type="time" value={editForm.closing_time}
+                      onChange={(e) => setEditForm({ ...editForm, closing_time: e.target.value })} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Contact</label>
+                    <input className="input text-sm" value={editForm.contact}
+                      onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(c._id)}
+                    disabled={saving}
+                    className="btn-primary text-sm flex items-center gap-1"
+                  >
+                    <Check size={14} /> {saving ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button onClick={() => setEditing(null)} className="btn-secondary text-sm">Cancel</button>
+                </div>
+              </div>
             )}
           </div>
         ))}
