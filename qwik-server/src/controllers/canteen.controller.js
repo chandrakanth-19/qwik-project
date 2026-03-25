@@ -39,9 +39,10 @@ exports.updateCanteen = asyncHandler(async (req, res) => {
   ok(res, canteen, "Canteen updated");
 });
 
-// GET /api/canteens/mine — merchant gets their own canteen
+// GET /api/canteens/mine — merchant gets ALL their canteens (FIX 5: supports multiple canteens)
 exports.getMyCanteen = asyncHandler(async (req, res) => {
-  const canteen = await Canteen.findOne({ manager_id: req.user._id });
-  if (!canteen) return notFound(res, "No canteen assigned to you yet");
-  ok(res, canteen);
+  const canteens = await Canteen.find({ manager_id: req.user._id, is_active: true });
+  if (!canteens.length) return notFound(res, "No canteen assigned to you yet");
+  // Return array; clients that expect single object get canteens[0] for backward compat
+  ok(res, canteens);
 });

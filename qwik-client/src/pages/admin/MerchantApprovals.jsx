@@ -70,12 +70,20 @@ export default function MerchantApprovals() {
                     <p className="font-semibold">{m.name}</p>
                     <p className="text-sm text-gray-500">{m.email} · {m.phone || "—"}</p>
                     <p className="text-xs text-gray-400">Registered {new Date(m.createdAt).toLocaleDateString()}</p>
-                    {/* FIX 10: show canteen request from registration */}
+                    {/* Canteen request details shown clearly below merchant info */}
                     {m.canteen_request?.canteen_name && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 w-fit">
-                        <Store size={11} />
-                        Requested: <span className="font-medium">{m.canteen_request.canteen_name}</span>
-                        {m.canteen_request.canteen_hall && <span>· {m.canteen_request.canteen_hall}</span>}
+                      <div className="mt-2 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 w-fit">
+                          <Store size={11} />
+                          <span className="font-semibold">Canteen:</span>
+                          <span className="font-medium">{m.canteen_request.canteen_name}</span>
+                        </div>
+                        {m.canteen_request.canteen_hall && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 rounded px-2 py-1 w-fit">
+                            <span className="font-semibold">Location:</span>
+                            <span>{m.canteen_request.canteen_hall}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

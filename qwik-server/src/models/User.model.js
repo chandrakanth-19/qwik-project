@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
     // Auth / security
     is_verified:  { type: Boolean, default: false },
     is_blocked:   { type: Boolean, default: false },
+    is_approved:  { type: Boolean, default: false }, // set to true by admin for merchants
 
     // FIX 10: Merchant's requested canteen (filled on registration, shown to admin on approval)
     canteen_request: {

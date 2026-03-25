@@ -14,6 +14,7 @@ export default function Login() {
   const [unverified, setUnverified]       = useState(false);   // Fix 8: no flash
   const [blocked, setBlocked]             = useState(false);   // Fix 6
   const [notFound, setNotFound]           = useState(false);   // Fix 5
+  const [wrongPassword, setWrongPassword]   = useState(false);   // Fix 3
   const [pendingApproval, setPendingApproval] = useState(false); // Fix 10: merchant pending
   const [userId, setUserId]               = useState(null);
   const [otpSent, setOtpSent]             = useState(false);
@@ -24,6 +25,7 @@ export default function Login() {
     setUnverified(false);
     setBlocked(false);
     setNotFound(false);
+    setWrongPassword(false);
     setPendingApproval(false);
   };
 
@@ -49,10 +51,12 @@ export default function Login() {
       } else if (msg.includes("verify") || msg.includes("verified")) {
         // Fix 8: set state BEFORE loading=false to avoid 1-frame flash
         setUnverified(true);
+      } else if (msg.includes("invalid credentials") || msg.includes("check your password")) {
+        // Fix 3: wrong password
+        setWrongPassword(true);
       } else if (
         msg.includes("no account") ||
         msg.includes("not found") ||
-        msg.includes("invalid credentials") ||
         msg.includes("admin login page")
       ) {
         // Fix 5: show register prompt
@@ -135,6 +139,20 @@ export default function Login() {
             Your account is verified, but the admin hasn't approved your canteen request yet.
             You'll be able to log in once approved. Please check back later.
           </p>
+        </div>
+      )}
+
+
+      {/* ── Fix 3: Wrong password ── */}
+      {wrongPassword && (
+        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-sm text-orange-800 font-semibold mb-1">❌ Incorrect password</p>
+          <p className="text-xs text-orange-700">
+            The password you entered is incorrect. Please try again or reset your password.
+          </p>
+          <Link to="/forgot-password" className="inline-block mt-2 text-xs text-orange-700 font-medium hover:underline">
+            Forgot password?
+          </Link>
         </div>
       )}
 
