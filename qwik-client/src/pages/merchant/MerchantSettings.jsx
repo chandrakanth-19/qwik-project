@@ -13,8 +13,9 @@ export function CanteenSettings() {
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) => {
-      setCanteen(data.data);
-      const c = data.data;
+      // getMine returns an array; merchant always has at most one canteen
+      const c = Array.isArray(data.data) ? data.data[0] : data.data;
+      setCanteen(c);
       setForm({
         name: c.name, location: c.location || "", hall: c.hall || "",
         opening_time: c.opening_time || "08:00", closing_time: c.closing_time || "22:00",
@@ -107,8 +108,9 @@ export function Analytics() {
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) => {
-      setCanteenId(data.data._id);
-      return orderAPI.getCanteenOrders(data.data._id);
+      const c = Array.isArray(data.data) ? data.data[0] : data.data;
+      setCanteenId(c._id);
+      return orderAPI.getCanteenOrders(c._id);
     }).then(({ data }) => {
       setOrders(data.data.filter((o) => ["PAID","PREPARING","READY","COMPLETED"].includes(o.status)));
       setLoading(false);

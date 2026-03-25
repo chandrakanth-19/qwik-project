@@ -8,8 +8,7 @@ import useAuthStore from "../../store/authStore";
 
 const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","Hall 8","Hall 9","Hall 10","Hall 11","Hall 12","Hall 13","Hall 14","Visitors"];
 
-// Canteen options for merchant signup (Fix 10 partial — canteen field)
-const CANTEEN_HALLS = ["MT Canteen", "CC Canteen", "DOAA Canteen", "Hall 2 Canteen", "Hall 5 Canteen", "Hall 13 Canteen", "Other"];
+
 
 export default function Register() {
   const navigate = useNavigate();
@@ -24,6 +23,7 @@ export default function Register() {
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);  // 👈 added
+  const [phoneError, setPhoneError] = useState("");
   const [form, setForm] = useState({
     name: "", email: "", phone: "", password: "",
     role: "customer", hall_of_residence: "Hall 1", room_no: "",
@@ -141,9 +141,9 @@ export default function Register() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone <span className="text-gray-400 font-normal">(visitors — OTP via SMS)</span>
+            Phone <span className="text-gray-400 font-normal">(+91)</span>
           </label>
-          <input className="input" type="tel" placeholder="+91 9999999999"
+          <input className="input" type="tel" placeholder="9999999999"
             value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </div>
 
@@ -180,12 +180,10 @@ export default function Register() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Canteen Location / Hall</label>
-              <select className="input text-sm" value={form.canteen_hall}
+              <input className="input text-sm" placeholder="e.g. Hall 5, MT Canteen"
+                value={form.canteen_hall}
                 onChange={(e) => setForm({ ...form, canteen_hall: e.target.value })}
-                required={form.role === "merchant"}>
-                <option value="">Select location</option>
-                {CANTEEN_HALLS.map((h) => <option key={h}>{h}</option>)}
-              </select>
+                required={form.role === "merchant"} />
             </div>
           </div>
         )}

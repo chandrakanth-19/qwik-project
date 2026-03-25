@@ -19,7 +19,7 @@ export default function MerchantPartyHistory() {
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) =>
-      reservationAPI.getCanteenReservations(data.data._id)
+      reservationAPI.getCanteenReservations(Array.isArray(data.data) ? data.data[0]._id : data.data._id)
     ).then(({ data }) => {
       setReservations(data.data);
       setLoading(false);

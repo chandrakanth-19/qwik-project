@@ -11,8 +11,9 @@ export default function MerchantOrderHistory() {
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) => {
-      setCanteenId(data.data._id);
-      return orderAPI.getCanteenOrders(data.data._id);
+      const c = Array.isArray(data.data) ? data.data[0] : data.data;
+      setCanteenId(c._id);
+      return orderAPI.getCanteenOrders(c._id);
     }).then(({ data }) => {
       setOrders(data.data);
       setLoading(false);

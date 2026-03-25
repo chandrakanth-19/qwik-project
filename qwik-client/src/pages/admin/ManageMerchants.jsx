@@ -145,11 +145,12 @@ export default function ManageMerchants() {
                       )}
                     </div>
                     <p className="text-sm text-gray-500">{m.email || "—"} · {m.phone || "—"}</p>
-                    {/* Canteen info */}
-                    {m.canteen
+                    {/* Canteen info — backend returns canteens[] array */}
+                    {m.canteens?.length > 0
                       ? <p className="text-xs text-brand-600 mt-1">
-                          📍 {m.canteen.name} · {m.canteen.hall || m.canteen.location || "—"}
-                          · {m.canteen.is_open ? "Open" : "Closed"}
+                          📍 {m.canteens[0].name}
+                          {(m.canteens[0].hall || m.canteens[0].location) && ` · ${m.canteens[0].hall || m.canteens[0].location}`}
+                          {" · "}{m.canteens[0].is_open ? "Open" : "Closed"}
                         </p>
                       : <p className="text-xs text-gray-400 mt-1">No canteen assigned</p>
                     }

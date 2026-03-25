@@ -23,8 +23,9 @@ export default function MerchantOrders() {
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) => {
-      setCanteenId(data.data._id);
-      return load(data.data._id);
+      const c = Array.isArray(data.data) ? data.data[0] : data.data;
+      setCanteenId(c._id);
+      return load(c._id);
     }).finally(() => setLoading(false));
 
     // Poll every 5 seconds for new orders
