@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Store } from "lucide-react";
 import { adminAPI } from "../../api";
 import { Spinner } from "../../components";
 
@@ -17,6 +17,21 @@ export default function MerchantApprovals() {
     adminAPI.getPendingMerchants().then(({ data }) => { setMerchants(data.data); setLoading(false); });
 
   useEffect(() => { load(); }, []);
+
+  // FIX 10: pre-fill canteen form from merchant's registration request
+  const openApprove = (m) => {
+    setSelected(selected?._id === m._id ? null : m);
+    if (selected?._id !== m._id) {
+      setCanteenForm({
+        canteen_name: m.canteen_request?.canteen_name || "",
+        hall:         m.canteen_request?.canteen_hall  || "",
+        location:     "",
+        opening_time: "08:00",
+        closing_time: "22:00",
+        contact:      "",
+      });
+    }
+  };
 
   const approve = async (id) => {
     setSaving(true);
@@ -50,14 +65,22 @@ export default function MerchantApprovals() {
         : <div className="space-y-3">
             {merchants.map((m) => (
               <div key={m._id} className="card overflow-hidden">
-                <div className="p-4 flex items-center justify-between">
+                <div className="p-4 flex items-start justify-between">
                   <div>
                     <p className="font-semibold">{m.name}</p>
                     <p className="text-sm text-gray-500">{m.email} · {m.phone || "—"}</p>
                     <p className="text-xs text-gray-400">Registered {new Date(m.createdAt).toLocaleDateString()}</p>
+                    {/* FIX 10: show canteen request from registration */}
+                    {m.canteen_request?.canteen_name && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 w-fit">
+                        <Store size={11} />
+                        Requested: <span className="font-medium">{m.canteen_request.canteen_name}</span>
+                        {m.canteen_request.canteen_hall && <span>· {m.canteen_request.canteen_hall}</span>}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => setSelected(selected?._id === m._id ? null : m)}
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => openApprove(m)}
                       className="flex items-center gap-1 bg-brand-400 hover:bg-brand-600 text-white text-sm px-3 py-1.5 rounded-lg">
                       <CheckCircle size={14} /> Approve
                     </button>
@@ -71,7 +94,8 @@ export default function MerchantApprovals() {
                 {/* Canteen setup form when approving */}
                 {selected?._id === m._id && (
                   <div className="border-t p-4 bg-gray-50">
-                    <p className="text-sm font-medium mb-3">Set up canteen details</p>
+                    <p className="text-sm font-medium mb-1">Confirm canteen details</p>
+                    <p className="text-xs text-gray-500 mb-3">Pre-filled from merchant's registration request. Edit if needed.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Canteen Name</label>
@@ -80,7 +104,7 @@ export default function MerchantApprovals() {
                           onChange={(e) => setCanteenForm({ ...canteenForm, canteen_name: e.target.value })} />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Hall</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Hall / Location</label>
                         <input className="input text-sm" placeholder="e.g. Hall 5"
                           value={canteenForm.hall}
                           onChange={(e) => setCanteenForm({ ...canteenForm, hall: e.target.value })} />
