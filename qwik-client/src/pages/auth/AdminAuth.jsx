@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Shield, Eye, EyeOff } from "lucide-react";  // 👈 added Eye, EyeOff
+import { Shield, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
 
@@ -28,7 +28,7 @@ export function AdminLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [notFound, setNotFound] = useState(false);   // FIX 5 for admin
+  const [notFound, setNotFound] = useState(false);
   const [wrongPass, setWrongPass] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -42,11 +42,11 @@ export function AdminLogin() {
     } catch (err) {
       const raw = err.response?.data?.message || "Login failed";
       const msg = raw.toLowerCase();
-      // FIX 5: no account found for admin
-      if (msg.includes("no admin account") || msg.includes("not found")) {
-        setNotFound(true);
-      } else if (msg.includes("invalid admin credentials") || msg.includes("invalid credentials")) {
+      // FIX 3: clearly split "no account" vs "wrong password"
+      if (msg.includes("invalid admin credentials") || msg.includes("check your password")) {
         setWrongPass(true);
+      } else if (msg.includes("no admin account") || msg.includes("not found")) {
+        setNotFound(true);
       } else {
         toast.error(raw);
       }
@@ -74,12 +74,16 @@ export function AdminLogin() {
             </button>
           </div>
         </div>
+        <div className="flex justify-end">
+          <Link to="/admin/forgot-password" className="text-sm text-amber-600 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
         <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
-      {/* FIX 5: No admin account found */}
       {notFound && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-800 font-semibold mb-1">⚠️ No account found</p>
@@ -89,13 +93,15 @@ export function AdminLogin() {
         </div>
       )}
 
-      {/* Wrong password */}
       {wrongPass && (
         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
           <p className="text-sm text-orange-800 font-semibold mb-1">❌ Incorrect password</p>
-          <p className="text-xs text-orange-700">
+          <p className="text-xs text-orange-700 mb-2">
             The password you entered is incorrect. Please try again.
           </p>
+          <Link to="/admin/forgot-password" className="text-xs text-orange-700 font-medium hover:underline">
+            Reset password →
+          </Link>
         </div>
       )}
 
@@ -107,20 +113,25 @@ export function AdminLogin() {
   );
 }
 
-// ── Admin Register ────────────────────────────────────────────
+// ── Admin Register ─────────────────────────────────────────────
+// FIX 4: Two-step register with OTP, like regular users
 export function AdminRegister() {
   const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [userId, setUserId] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", password: "", invite_code: "" });
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // 👈 added
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await authAPI.adminRegister(form);
-      toast.success("Admin account created! Please log in.");
-      navigate("/admin/login");
+      const { data } = await authAPI.adminRegister(form);
+      setUserId(data.data.user_id);
+      setStep(2);
+      toast.success("OTP sent to your email!");
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed");
     } finally {
@@ -128,9 +139,45 @@ export function AdminRegister() {
     }
   };
 
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authAPI.verifyOTP({ user_id: userId, otp });
+      toast.success("Admin account verified! Please log in.");
+      navigate("/admin/login");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === 2) return (
+    <AdminAuthLayout title="Verify your email" subtitle="Enter the OTP sent to your admin email">
+      <form onSubmit={handleVerify} className="space-y-4">
+        <input
+          className="input text-center text-2xl tracking-[0.5em] font-bold"
+          placeholder="------"
+          maxLength={6}
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+          required
+        />
+        <button type="submit" disabled={loading || otp.length < 6}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg disabled:opacity-50">
+          {loading ? "Verifying..." : "Verify & Continue"}
+        </button>
+      </form>
+      <p className="text-center text-xs text-gray-400 mt-4">
+        Sent to <span className="font-medium">{form.email}</span>
+      </p>
+    </AdminAuthLayout>
+  );
+
   return (
     <AdminAuthLayout title="Admin Registration" subtitle="You need a valid invite code to proceed">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
           <input className="input" placeholder="Admin name" value={form.name}
@@ -143,7 +190,6 @@ export function AdminRegister() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-           {/* 👇 replaced */}
           <div className="relative">
             <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
@@ -165,6 +211,99 @@ export function AdminRegister() {
       <p className="text-center text-sm text-gray-500 mt-4">
         Already registered?{" "}
         <Link to="/admin/login" className="text-amber-600 font-medium hover:underline">Sign in</Link>
+      </p>
+    </AdminAuthLayout>
+  );
+}
+
+// ── Admin Forgot Password ──────────────────────────────────────
+// FIX 4: Forgot password flow for admin
+export function AdminForgotPassword() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
+  const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState(null);
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleRequestOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await authAPI.forgotPassword({ email });
+      setUserId(data.data.user_id);
+      setStep(2);
+      toast.success("OTP sent to your email!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "No admin account found with this email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authAPI.resetPassword({ user_id: userId, otp, new_password: newPassword });
+      toast.success("Password reset! Please log in.");
+      navigate("/admin/login");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reset password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === 2) return (
+    <AdminAuthLayout title="Reset Password" subtitle="Enter the OTP and your new password">
+      <form onSubmit={handleReset} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">OTP</label>
+          <input
+            className="input text-center text-2xl tracking-[0.5em] font-bold"
+            placeholder="------" maxLength={6}
+            value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+          <div className="relative">
+            <input className="input pr-10" type={showPassword ? "text" : "password"}
+              placeholder="Min 6 characters" value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+        <button type="submit" disabled={loading || otp.length < 6}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg disabled:opacity-50">
+          {loading ? "Resetting..." : "Reset Password"}
+        </button>
+      </form>
+    </AdminAuthLayout>
+  );
+
+  return (
+    <AdminAuthLayout title="Forgot Password" subtitle="Enter your admin email to receive a reset OTP">
+      <form onSubmit={handleRequestOTP} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
+          <input className="input" type="email" placeholder="admin@qwik.in"
+            value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <button type="submit" disabled={loading}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg disabled:opacity-50">
+          {loading ? "Sending OTP..." : "Send Reset OTP"}
+        </button>
+      </form>
+      <p className="text-center text-sm text-gray-500 mt-4">
+        <Link to="/admin/login" className="text-amber-600 font-medium hover:underline">← Back to login</Link>
       </p>
     </AdminAuthLayout>
   );

@@ -19,7 +19,7 @@ import { ProtectedRoute, AdminProtectedRoute } from "./components";
 import Login          from "./pages/auth/Login";
 import Register       from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import { AdminLogin, AdminRegister } from "./pages/auth/AdminAuth";
+import { AdminLogin, AdminRegister, AdminForgotPassword } from "./pages/auth/AdminAuth";
 
 // Customer pages
 import Home            from "./pages/customer/Home";
@@ -77,6 +77,7 @@ export default function App() {
       {/* ── Admin auth routes ─────────────────────────────── */}
       <Route path="/admin/login"    element={<AdminLogin />} />
       <Route path="/admin/register" element={<AdminRegister />} />
+      <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
       <Route path="/admin/merchants" element={<AdminRoute><ManageMerchants /></AdminRoute>} />
 
       {/* ── Customer routes ───────────────────────────────── */}
