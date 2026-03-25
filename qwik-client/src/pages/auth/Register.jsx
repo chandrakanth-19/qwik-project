@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";  // 👈 added
 import AuthLayout from "../../components/layout/AuthLayout";
 import { authAPI } from "../../api";
 import useAuthStore from "../../store/authStore";
@@ -22,6 +23,7 @@ export default function Register() {
   const [pendingUser, setPendingUser] = useState(null); // store user info for auto-login
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
   const [form, setForm] = useState({
     name: "", email: "", phone: "", password: "",
     role: "customer", hall_of_residence: "Hall 1", room_no: "",
@@ -190,9 +192,15 @@ export default function Register() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input className="input" type="password" placeholder="Min 6 characters"
-            value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required minLength={6} />
+            {/* 👇 replaced */}
+          <div className="relative">
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters"
+              value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
