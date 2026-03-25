@@ -27,11 +27,9 @@
 
 // export default api;
 
-
 import axios from "axios";
 import toast from "react-hot-toast";
 
-//const api = axios.create({ baseURL: "/api" });
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL}/api`
@@ -47,7 +45,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || "";
+    const isAuthEndpoint = url.includes("/auth/");
+
+    // Only auto-redirect on 401 for protected routes, NOT auth endpoints
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.clear();
       window.location.href = "/login";
     }
@@ -62,3 +64,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
