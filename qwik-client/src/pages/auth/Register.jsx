@@ -33,6 +33,10 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (!form.phone || form.phone.length !== 10) {
+      setPhoneError("Phone number is required and must be exactly 10 digits");
+      return;
+    }
     setLoading(true);
     try {
       const payload = { ...form };
@@ -114,7 +118,7 @@ export default function Register() {
   );
 
   return (
-    <AuthLayout title="Create account" subtitle="Join Qwik — IITK Digital Canteen">
+    <AuthLayout title="Create account" subtitle={form.role === "merchant" ? "Merchant registration — Qwik Canteen Platform" : "Join Qwik — IITK Digital Canteen"}>
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -126,25 +130,52 @@ export default function Register() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
           <select className="input" value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value="customer">Student / Visitor</option>
+            <option value="customer">Student</option>
             <option value="merchant">Canteen Merchant</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            IITK Email <span className="text-gray-400 font-normal">(students)</span>
+            {form.role === "merchant" ? (
+              "Email"
+            ) : (
+              <>IITK Email <span className="text-gray-400 font-normal">(students)</span></>
+            )}
           </label>
-          <input className="input" type="email" placeholder="you@iitk.ac.in"
-            value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input
+            className="input"
+            type="email"
+            placeholder={form.role === "merchant" ? "you@gmail.com" : "you@iitk.ac.in"}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Phone <span className="text-gray-400 font-normal">(+91)</span>
           </label>
-          <input className="input" type="tel" placeholder="9999999999"
-            value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <input
+            className="input"
+            type="tel"
+            placeholder="9999999999"
+            value={form.phone}
+            maxLength={10}
+            required
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: val });
+              if (!val) {
+                setPhoneError("Phone number is required");
+              } else if (val.length !== 10) {
+                setPhoneError("Phone number must be exactly 10 digits");
+              } else {
+                setPhoneError("");
+              }
+            }}
+          />
+          {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
 
         {form.role === "customer" && (
@@ -159,7 +190,7 @@ export default function Register() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
               <input className="input" placeholder="e.g. 101, A-204" value={form.room_no}
-                onChange={(e) => setForm({ ...form, room_no: e.target.value })} />
+                onChange={(e) => setForm({ ...form, room_no: e.target.value })} required />
             </div>
           </>
         )}

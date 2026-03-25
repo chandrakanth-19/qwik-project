@@ -9,6 +9,7 @@ export default function MerchantProfile() {
   const [form, setForm]       = useState({ name: "", email: "", phone: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     userAPI.getMe().then(({ data }) => {
@@ -16,7 +17,7 @@ export default function MerchantProfile() {
       setForm({
         name:  u.name  || "",
         email: u.email || "",
-        phone: u.phone || "",
+        phone: (u.phone || "").replace(/\D/g, "").slice(-10),
       });
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -24,6 +25,10 @@ export default function MerchantProfile() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.phone || form.phone.replace(/\D/g, "").length !== 10) {
+      setPhoneError("Phone number is required and must be exactly 10 digits");
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await userAPI.updateMe(form);
@@ -80,10 +85,19 @@ export default function MerchantProfile() {
           <input
             className="input"
             type="tel"
-            placeholder="+91 9999999999"
+            placeholder="9999999999"
+            maxLength={10}
+            required
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: val });
+              if (!val) setPhoneError("Phone number is required");
+              else if (val.length !== 10) setPhoneError("Phone number must be exactly 10 digits");
+              else setPhoneError("");
+            }}
           />
+          {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full">

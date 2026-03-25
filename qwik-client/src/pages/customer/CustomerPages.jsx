@@ -324,17 +324,22 @@ const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","H
 export function Profile() {
   const [form, setForm] = useState({ name: "", phone: "", hall_of_residence: "", room_no: "" });
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const { userAPI } = { userAPI: { getMe: () => import("../../api").then(m => m.userAPI.getMe()), updateMe: (d) => import("../../api").then(m => m.userAPI.updateMe(d)) } };
 
   useEffect(() => {
     userAPI.getMe().then(({ data }) => {
       const u = data.data;
-      setForm({ name: u.name || "", phone: u.phone || "", hall_of_residence: u.hall_of_residence || "", room_no: u.room_no || ""});
+      setForm({ name: u.name || "", phone: (u.phone || "").replace(/\D/g, "").slice(-10), hall_of_residence: u.hall_of_residence || "", room_no: u.room_no || ""});
     });
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.phone || form.phone.replace(/\D/g, "").length !== 10) {
+      setPhoneError("Phone number is required and must be exactly 10 digits");
+      return;
+    }
     setLoading(true);
     try {
       await userAPI.updateMe(form);
@@ -353,8 +358,23 @@ export function Profile() {
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input className="input" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(+91)</span></label>
+          <input
+            className="input"
+            type="tel"
+            placeholder="9999999999"
+            maxLength={10}
+            required
+            value={form.phone}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: val });
+              if (!val) setPhoneError("Phone number is required");
+              else if (val.length !== 10) setPhoneError("Phone number must be exactly 10 digits");
+              else setPhoneError("");
+            }}
+          />
+          {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Hall of Residence</label>
@@ -368,6 +388,7 @@ export function Profile() {
           <input
             className="input"
             placeholder="e.g. 101, A-204"
+            required
             value={form.room_no}
             onChange={(e) => setForm({ ...form, room_no: e.target.value })}
           />
