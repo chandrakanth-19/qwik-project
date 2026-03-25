@@ -141,6 +141,10 @@ export function AdminRegister() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    if (otp.length < 6) {
+      toast.error("Please enter the complete 6-digit OTP");
+      return;
+    }
     setLoading(true);
     try {
       await authAPI.verifyOTP({ user_id: userId, otp });
