@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, ChefHat, Clock, CalendarClock } from "lucide-react";
+import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, ChefHat, Clock, CalendarClock, UserCircle } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const links = [
@@ -11,6 +11,8 @@ const links = [
   { to: "/merchant/party-history", icon: CalendarClock,   label: "Party History" },
   { to: "/merchant/settings",      icon: Settings,        label: "Canteen Settings" },
   { to: "/merchant/analytics",     icon: BarChart2,       label: "Analytics" },
+  // FIX 2: Merchant profile link
+  { to: "/merchant/profile",       icon: UserCircle,      label: "My Profile" },
 ];
 
 export default function MerchantSidebar({ collapsed }) {

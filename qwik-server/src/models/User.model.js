@@ -52,6 +52,13 @@ const userSchema = new mongoose.Schema(
     // Auth / security
     is_verified:  { type: Boolean, default: false },
     is_blocked:   { type: Boolean, default: false },
+    is_approved:  { type: Boolean, default: false }, // set to true by admin for merchants
+
+    // FIX 10: Merchant's requested canteen (filled on registration, shown to admin on approval)
+    canteen_request: {
+      canteen_name: { type: String, trim: true },
+      canteen_hall: { type: String, trim: true },
+    },
 
     // OTP fields (temporary, overwritten on each request)
     otp:            { type: String,  select: false },

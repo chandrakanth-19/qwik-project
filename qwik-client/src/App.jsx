@@ -19,7 +19,7 @@ import { ProtectedRoute, AdminProtectedRoute } from "./components";
 import Login          from "./pages/auth/Login";
 import Register       from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import { AdminLogin, AdminRegister } from "./pages/auth/AdminAuth";
+import { AdminLogin, AdminRegister, AdminForgotPassword } from "./pages/auth/AdminAuth";
 
 // Customer pages
 import Home            from "./pages/customer/Home";
@@ -34,6 +34,7 @@ import MerchantOrders    from "./pages/merchant/Orders";
 import MenuManager       from "./pages/merchant/MenuManager";
 import PartyRequests     from "./pages/merchant/PartyRequests";
 import { CanteenSettings, Analytics } from "./pages/merchant/MerchantSettings";
+import MerchantProfile   from "./pages/merchant/MerchantProfile";
 
 // Admin pages
 import AdminDashboard    from "./pages/admin/AdminDashboard";
@@ -76,6 +77,7 @@ export default function App() {
       {/* ── Admin auth routes ─────────────────────────────── */}
       <Route path="/admin/login"    element={<AdminLogin />} />
       <Route path="/admin/register" element={<AdminRegister />} />
+      <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
       <Route path="/admin/merchants" element={<AdminRoute><ManageMerchants /></AdminRoute>} />
 
       {/* ── Customer routes ───────────────────────────────── */}
@@ -107,6 +109,7 @@ export default function App() {
       <Route path="/merchant/analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />
       <Route path="/merchant/order-history" element={<MerchantRoute><MerchantOrderHistory /></MerchantRoute>} />
       <Route path="/merchant/party-history" element={<MerchantRoute><MerchantPartyHistory /></MerchantRoute>} />
+      <Route path="/merchant/profile"       element={<MerchantRoute><MerchantProfile /></MerchantRoute>} />
 
       {/* ── Admin routes ──────────────────────────────────── */}
       <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

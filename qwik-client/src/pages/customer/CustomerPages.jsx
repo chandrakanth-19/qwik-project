@@ -1,14 +1,12 @@
-import { userAPI } from "../../api";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import useCartStore from "../../store/cartStore";
-import { orderAPI, paymentAPI } from "../../api";
+import { orderAPI, paymentAPI, userAPI } from "../../api";
 import { Spinner, OrderStatusBadge } from "../../components";
 import { usePolling } from "../../hooks/usePolling";
 import { TERMINAL_STATUSES } from "../../utils/constants";
-import { useEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────
 // Cart
@@ -132,12 +130,23 @@ export function Checkout() {
 export function OrderTracking({ orderId }) {
   const navigate = useNavigate();
   const [reconfirmLoading, setReconfirmLoading] = useState(false);
+  const [acceptedPopup, setAcceptedPopup]       = useState(false); // FIX 7
+  const prevStatusRef = useRef(null);                               // FIX 7: track prev status
 
   const { data: order, loading } = usePolling(
     () => orderAPI.getOne(orderId).then((r) => r.data.data),
     4000,
     (o) => o && TERMINAL_STATUSES.includes(o.status)
   );
+
+  // FIX 7: Detect when status transitions to ACCEPTED and show popup
+  useEffect(() => {
+    if (!order) return;
+    if (prevStatusRef.current !== "ACCEPTED" && order.status === "ACCEPTED") {
+      setAcceptedPopup(true);
+    }
+    prevStatusRef.current = order.status;
+  }, [order?.status]);
 
   const handleReconfirm = async () => {
     setReconfirmLoading(true);
@@ -158,6 +167,36 @@ export function OrderTracking({ orderId }) {
 
   return (
     <div className="max-w-lg mx-auto">
+      {/* FIX 7: Order accepted popup */}
+      {acceptedPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
+            <div className="text-5xl mb-3">🎉</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Order Accepted!</h2>
+            <p className="text-sm text-gray-500 mb-1">The merchant has accepted your order.</p>
+            {order.merchant_note && (
+              <p className="text-sm text-brand-600 font-medium bg-brand-50 rounded-lg px-3 py-2 mb-3">
+                Merchant says: "{order.merchant_note}"
+              </p>
+            )}
+            <p className="text-lg font-bold text-gray-800 mb-4">
+              Total: ₹{order.total_amount}
+            </p>
+            <button
+              onClick={() => { setAcceptedPopup(false); navigate(`/pay/${orderId}`); }}
+              className="btn-primary w-full mb-2"
+            >
+              Proceed to Payment
+            </button>
+            <button
+              onClick={() => setAcceptedPopup(false)}
+              className="btn-secondary w-full text-sm"
+            >
+              View Order Status
+            </button>
+          </div>
+        </div>
+      )}
       <h1 className="text-xl font-bold mb-1">Tracking Order</h1>
       <p className="text-sm text-gray-400 mb-6 font-mono">#{order._id?.slice(-8).toUpperCase()}</p>
 
@@ -285,17 +324,22 @@ const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","H
 export function Profile() {
   const [form, setForm] = useState({ name: "", phone: "", hall_of_residence: "", room_no: "" });
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const { userAPI } = { userAPI: { getMe: () => import("../../api").then(m => m.userAPI.getMe()), updateMe: (d) => import("../../api").then(m => m.userAPI.updateMe(d)) } };
 
   useEffect(() => {
     userAPI.getMe().then(({ data }) => {
       const u = data.data;
-      setForm({ name: u.name || "", phone: u.phone || "", hall_of_residence: u.hall_of_residence || "", room_no: u.room_no || ""});
+      setForm({ name: u.name || "", phone: (u.phone || "").replace(/\D/g, "").slice(-10), hall_of_residence: u.hall_of_residence || "", room_no: u.room_no || ""});
     });
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.phone || form.phone.replace(/\D/g, "").length !== 10) {
+      setPhoneError("Phone number is required and must be exactly 10 digits");
+      return;
+    }
     setLoading(true);
     try {
       await userAPI.updateMe(form);
@@ -314,8 +358,23 @@ export function Profile() {
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input className="input" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(+91)</span></label>
+          <input
+            className="input"
+            type="tel"
+            placeholder="9999999999"
+            maxLength={10}
+            required
+            value={form.phone}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: val });
+              if (!val) setPhoneError("Phone number is required");
+              else if (val.length !== 10) setPhoneError("Phone number must be exactly 10 digits");
+              else setPhoneError("");
+            }}
+          />
+          {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Hall of Residence</label>
@@ -329,6 +388,7 @@ export function Profile() {
           <input
             className="input"
             placeholder="e.g. 101, A-204"
+            required
             value={form.room_no}
             onChange={(e) => setForm({ ...form, room_no: e.target.value })}
           />

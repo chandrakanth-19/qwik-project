@@ -13,7 +13,7 @@ const signToken = (id) =>
 
 // ── POST /api/auth/register ──────────────────────────────────
 exports.register = asyncHandler(async (req, res) => {
-  const { name, email, phone, password, role, hall_of_residence } = req.body;
+  const { name, email, phone, password, role, hall_of_residence, canteen_name, canteen_hall } = req.body;
 
   if (!email && !phone) return badReq(res, "Provide email or phone number");
   if (email && !email.endsWith("@iitk.ac.in") && role !== ROLES.MERCHANT)
@@ -22,11 +22,14 @@ exports.register = asyncHandler(async (req, res) => {
   const existing = await User.findOne({ $or: [{ email }, { phone }] });
   if (existing) return badReq(res, "Account already exists with this email or phone");
 
-  const user = await User.create({ name, email, phone, password, role: role || ROLES.CUSTOMER, hall_of_residence });
+  const userData = { name, email, phone, password, role: role || ROLES.CUSTOMER, hall_of_residence };
+  if (role === ROLES.MERCHANT && (canteen_name || canteen_hall)) {
+    userData.canteen_request = { canteen_name, canteen_hall };
+  }
+  const user = await User.create(userData);
 
   const otp = generateOTP();
   await saveOTPToUser(user, otp);
-
   if (email) await sendEmailOTP(email, otp);
   else await sendSMSOTP(phone, otp);
 
@@ -46,7 +49,7 @@ exports.verifyOTP = asyncHandler(async (req, res) => {
   await clearOTP(user);
 
   const token = signToken(user._id);
-  ok(res, { token, role: user.role }, "Account verified successfully");
+  ok(res, { token, role: user.role, user: { _id: user._id, name: user.name, email: user.email, role: user.role } }, "Account verified successfully");
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────
@@ -57,10 +60,20 @@ exports.login = asyncHandler(async (req, res) => {
 
   const query = email ? { email } : { phone };
   const user = await User.findOne(query).select("+password");
-  if (!user || !(await user.matchPassword(password)))
-    return unauth(res, "Invalid credentials");
+
+  // FIX 3: Distinguish "no account" from "wrong password" clearly
+  if (!user) return unauth(res, "No account found with this email. Please register.");
+  if (!(await user.matchPassword(password))) return unauth(res, "Invalid credentials. Please check your password.");
+
+  if (user.role === ROLES.ADMIN) return unauth(res, "Admins must use the admin login page.");
   if (!user.is_verified) return unauth(res, "Please verify your account first");
-  if (user.is_blocked) return unauth(res, "Your account has been blocked");
+
+  // FIX 1: Merchant must be admin-approved (is_approved=true) to login
+  if (user.role === ROLES.MERCHANT && !user.is_approved) {
+    return unauth(res, "PENDING_ADMIN_APPROVAL");
+  }
+
+  if (user.is_blocked) return unauth(res, "Your account has been blocked by the admin");
 
   const token = signToken(user._id);
   ok(res, {
@@ -76,28 +89,37 @@ exports.adminLogin = asyncHandler(async (req, res) => {
   if (!email || !password) return badReq(res, "Email and password required");
 
   const user = await User.findOne({ email, role: ROLES.ADMIN }).select("+password");
-  if (!user || !(await user.matchPassword(password)))
-    return unauth(res, "Invalid admin credentials");
+  // FIX 3: Same clear distinction for admin
+  if (!user) return unauth(res, "No admin account found with this email.");
+  if (!(await user.matchPassword(password))) return unauth(res, "Invalid admin credentials. Please check your password.");
 
   const token = signToken(user._id);
-  ok(res, { token, role: user.role, user: { _id: user._id, name: user.name } }, "Admin login successful");
+  ok(res, { token, role: user.role, user: { _id: user._id, name: user.name, email: user.email } }, "Admin login successful");
 });
 
 // ── POST /api/auth/admin-register ────────────────────────────
+// FIX 4: Admin register now sends OTP — does NOT auto-login
 exports.adminRegister = asyncHandler(async (req, res) => {
   const { name, email, password, invite_code } = req.body;
   if (invite_code !== process.env.ADMIN_INVITE_CODE)
     return unauth(res, "Invalid invite code");
+  if (!email) return badReq(res, "Admin email is required");
 
   const existing = await User.findOne({ email });
   if (existing) return badReq(res, "Email already registered");
 
-  const user = await User.create({ name, email, password, role: ROLES.ADMIN, is_verified: true });
-  const token = signToken(user._id);
-  created(res, { token, role: user.role }, "Super admin account created");
+  // Create unverified — OTP will verify them
+  const user = await User.create({ name, email, password, role: ROLES.ADMIN, is_verified: false });
+
+  const otp = generateOTP();
+  await saveOTPToUser(user, otp);
+  await sendEmailOTP(email, otp);
+
+  created(res, { user_id: user._id }, "Admin account created. Check your email for the OTP.");
 });
 
 // ── POST /api/auth/forgot-password ──────────────────────────
+// FIX 4: Works for all roles including admin
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email, phone } = req.body;
   const query = email ? { email } : { phone };
@@ -130,7 +152,6 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
 // ── POST /api/auth/logout ────────────────────────────────────
 exports.logout = asyncHandler(async (req, res) => {
-  // JWT is stateless; client discards token. Return confirmation.
   ok(res, null, "Logged out successfully");
 });
 
@@ -145,7 +166,6 @@ exports.resendVerificationOTP = asyncHandler(async (req, res) => {
 
   const otp = generateOTP();
   await saveOTPToUser(user, otp);
-
   if (email) await sendEmailOTP(email, otp);
   else await sendSMSOTP(phone, otp);
 

@@ -1,67 +1,56 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";  // 👈 added
 import AuthLayout from "../../components/layout/AuthLayout";
 import { authAPI } from "../../api";
-import { useAuth } from "../../hooks/useAuth";
+import useAuthStore from "../../store/authStore";
 
 const HALLS = ["Hall 1","Hall 2","Hall 3","Hall 4","Hall 5","Hall 6","Hall 7","Hall 8","Hall 9","Hall 10","Hall 11","Hall 12","Hall 13","Hall 14","Visitors"];
 
+
+
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const setAuth  = useAuthStore((s) => s.setAuth);
   const [step, setStep]     = useState(
     sessionStorage.getItem("pending_reg_user_id") ? 2 : 1
   );
   const [userId, setUserId] = useState(
     sessionStorage.getItem("pending_reg_user_id") || null
   );
+  const [pendingUser, setPendingUser] = useState(null); // store user info for auto-login
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  // 👈 added
   const [phoneError, setPhoneError] = useState("");
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", password: "", role: "customer", hall_of_residence: "Hall 1", room_no: "",
+    name: "", email: "", phone: "", password: "",
+    role: "customer", hall_of_residence: "Hall 1", room_no: "",
+    // Merchant extra fields (Fix 10)
+    canteen_name: "", canteen_hall: "",
   });
-
-  const validatePhone = (phone) => {
-    if (!phone) {
-      setPhoneError("Phone number cannot be empty");
-      return false;
-    }
-    // strip spaces, dashes, +91 prefix for counting digits
-    const digits = phone.replace(/[\s\-\+]/g, "").replace(/^91/, "");
-    if (digits.length < 10) {
-      setPhoneError("Phone number is less than 10 digits");
-      return false;
-    }
-    if (digits.length > 10) {
-      setPhoneError("Phone number is more than 10 digits");
-      return false;
-    }
-    setPhoneError("");
-    return true;
-  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
-    // If no email, phone is required — validate it
-    if (!form.email) {
-      if (!validatePhone(form.phone)) return;
+    if (!form.phone || form.phone.length !== 10) {
+      setPhoneError("Phone number is required and must be exactly 10 digits");
+      return;
     }
-
-    // If both email and phone provided, still validate phone
-    if (form.phone && !validatePhone(form.phone)) return;
-
     setLoading(true);
     try {
       const payload = { ...form };
       if (!payload.email) delete payload.email;
       if (!payload.phone) delete payload.phone;
+      // Remove merchant-only fields if customer
+      if (payload.role !== "merchant") {
+        delete payload.canteen_name;
+        delete payload.canteen_hall;
+      }
       const { data } = await authAPI.register(payload);
       setUserId(data.data.user_id);
+      // Save minimal info to auto-login after verify
+      setPendingUser({ role: form.role, email: form.email, password: form.password });
       sessionStorage.setItem("pending_reg_user_id", data.data.user_id);
       setStep(2);
       toast.success("OTP sent! Check your email or phone.");
@@ -77,15 +66,32 @@ export default function Register() {
     }
   };
 
+  // FIX 9: After OTP verify → auto login, don't redirect to login page
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await authAPI.verifyOTP({ user_id: userId, otp });
+      const { data } = await authAPI.verifyOTP({ user_id: userId, otp });
       sessionStorage.removeItem("pending_reg_user_id");
-      toast.success("Account verified! Logging you in...");
-      await login({ email: form.email, password: form.password });
-      toast.success("Welcome to Qwik! 🎉");
+
+      // FIX 9: server returns token + role on verifyOTP — use it to auto-login
+      if (data.data?.token && data.data?.role) {
+        // We need the full user object — fetch it or construct minimal version
+        // For merchant: they can't login yet (pending admin approval) — show message
+        if (data.data.role === "merchant") {
+          toast.success("Account verified! Your account is pending admin approval. You'll be notified once approved.");
+          navigate("/login");
+        } else {
+          // Auto-login for customers
+          const user = data.data.user || { _id: userId, name: form.name, email: form.email, role: data.data.role };
+          setAuth(user, data.data.token, data.data.role);
+          toast.success("Account verified! Welcome to Qwik 🎉");
+          navigate("/halls");
+        }
+      } else {
+        toast.success("Account verified! Please log in.");
+        navigate("/login");
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP");
     } finally {
@@ -105,14 +111,14 @@ export default function Register() {
           required
         />
         <button type="submit" disabled={loading || otp.length < 6} className="btn-primary w-full">
-          {loading ? "Verifying..." : "Verify"}
+          {loading ? "Verifying..." : "Verify & Continue"}
         </button>
       </form>
     </AuthLayout>
   );
 
   return (
-    <AuthLayout title="Create account" subtitle="Join Qwik — IITK Digital Canteen">
+    <AuthLayout title="Create account" subtitle={form.role === "merchant" ? "Merchant registration — Qwik Canteen Platform" : "Join Qwik — IITK Digital Canteen"}>
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -124,44 +130,52 @@ export default function Register() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
           <select className="input" value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value="customer">Student / Visitor</option>
+            <option value="customer">Student</option>
             <option value="merchant">Canteen Merchant</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            IITK Email <span className="text-gray-400 font-normal">(students)</span>
+            {form.role === "merchant" ? (
+              "Email"
+            ) : (
+              <>IITK Email <span className="text-gray-400 font-normal">(students)</span></>
+            )}
           </label>
-          <input className="input" type="email" placeholder="you@iitk.ac.in"
-            value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input
+            className="input"
+            type="email"
+            placeholder={form.role === "merchant" ? "you@gmail.com" : "you@iitk.ac.in"}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone <span className="text-gray-400 font-normal">(visitors — OTP via SMS)</span>
+            Phone <span className="text-gray-400 font-normal">(+91)</span>
           </label>
           <input
-  className={`input ${phoneError ? "border-red-500 focus:ring-red-500" : ""}`}
-  type="tel"
-  placeholder="9999999999"
-  value={form.phone}
-  onChange={(e) => {
-    const digits = e.target.value.replace(/\D/g, ""); // only numbers
-    if (digits.length > 10) {
-      setPhoneError("Phone number cannot be larger than 10 digits");
-      return; // stop typing after 10 digits
-    }
-    setForm({ ...form, phone: digits });
-    if (phoneError) validatePhone(digits);
-  }}
-/>
-          {/* Error message shown below the input */}
-          {phoneError && (
-            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-              ⚠️ {phoneError}
-            </p>
-          )}
+            className="input"
+            type="tel"
+            placeholder="9999999999"
+            value={form.phone}
+            maxLength={10}
+            required
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: val });
+              if (!val) {
+                setPhoneError("Phone number is required");
+              } else if (val.length !== 10) {
+                setPhoneError("Phone number must be exactly 10 digits");
+              } else {
+                setPhoneError("");
+              }
+            }}
+          />
+          {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
 
         {form.role === "customer" && (
@@ -176,13 +190,38 @@ export default function Register() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
               <input className="input" placeholder="e.g. 101, A-204" value={form.room_no}
-                onChange={(e) => setForm({ ...form, room_no: e.target.value })} />
+                onChange={(e) => setForm({ ...form, room_no: e.target.value })} required />
             </div>
           </>
         )}
 
+        {/* FIX 10: Merchant canteen request fields */}
+        {form.role === "merchant" && (
+          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
+            <p className="text-sm font-semibold text-purple-800">🏪 Canteen Access Request</p>
+            <p className="text-xs text-purple-600">
+              Tell us which canteen you want to manage. Admin will review and approve your request.
+            </p>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Canteen Name</label>
+              <input className="input text-sm" placeholder="e.g. Hall 5 Canteen"
+                value={form.canteen_name}
+                onChange={(e) => setForm({ ...form, canteen_name: e.target.value })}
+                required={form.role === "merchant"} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Canteen Location / Hall</label>
+              <input className="input text-sm" placeholder="e.g. Hall 5, MT Canteen"
+                value={form.canteen_hall}
+                onChange={(e) => setForm({ ...form, canteen_hall: e.target.value })}
+                required={form.role === "merchant"} />
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            {/* 👇 replaced */}
           <div className="relative">
             <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters"
               value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
