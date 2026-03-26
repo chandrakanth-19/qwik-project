@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
 
@@ -10,8 +10,8 @@ function AdminAuthLayout({ children, title, subtitle }) {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-amber-500 rounded-2xl mb-4">
-            <Shield className="text-white" size={28} />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 overflow-hidden">
+            <img src="/logo.png" alt="Qwik Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
           <p className="text-gray-500 text-sm mt-1">{subtitle}</p>

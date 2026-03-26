@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, ShoppingCart, Clock, PartyPopper, CalendarClock, User, LogOut, ChefHat } from "lucide-react";
+import { Home, ShoppingCart, Clock, PartyPopper, CalendarClock, User, LogOut } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import useCartStore from "../../store/cartStore";
 
@@ -20,7 +20,7 @@ export default function CustomerSidebar({ collapsed }) {
     <nav className="flex flex-col h-full py-4">
       {/* Logo */}
       <div className={`flex items-center gap-2 px-4 mb-6 ${collapsed ? "justify-center" : ""}`}>
-        <ChefHat className="text-brand-400 flex-shrink-0" size={24} />
+        <img src="/logo.png" alt="Logo" className="h-6 w-auto flex-shrink-0" />
         {!collapsed && <span className="font-bold text-lg text-brand-600">Qwik</span>}
       </div>
 
