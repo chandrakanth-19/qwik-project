@@ -100,7 +100,7 @@ export default function MerchantProfile() {
           {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
         </div>
 
-        <button type="submit" disabled={saving} className="btn-primary w-full">
+        <button type="submit" disabled={saving || form.phone.replace(/\D/g, "").length !== 10} className="btn-primary w-full">
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>

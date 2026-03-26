@@ -10,7 +10,7 @@ exports.getAllCanteens = asyncHandler(async (req, res) => {
 
 // GET /api/canteens/:id
 exports.getCanteen = asyncHandler(async (req, res) => {
-  const canteen = await Canteen.findById(req.params.id).populate("manager_id", "name email");
+  const canteen = await Canteen.findById(req.params.id).populate("manager_id", "name email phone");
   if (!canteen) return notFound(res, "Canteen not found");
   ok(res, canteen);
 });

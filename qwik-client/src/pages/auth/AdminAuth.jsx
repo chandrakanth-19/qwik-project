@@ -117,67 +117,27 @@ export function AdminLogin() {
 // FIX 4: Two-step register with OTP, like regular users
 export function AdminRegister() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [userId, setUserId] = useState(null);
+  // const [step, setStep] = useState(1);
+  // const [userId, setUserId] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", password: "", invite_code: "" });
-  const [otp, setOtp] = useState("");
+  // const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showInviteCode, setShowInviteCode] = useState(false);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await authAPI.adminRegister(form);
-      setUserId(data.data.user_id);
-      setStep(2);
-      toast.success("OTP sent to your email!");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (otp.length < 6) {
-      toast.error("Please enter the complete 6-digit OTP");
-      return;
-    }
-    setLoading(true);
-    try {
-      await authAPI.verifyOTP({ user_id: userId, otp });
-      toast.success("Admin account verified! Please log in.");
-      navigate("/admin/login");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid OTP");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (step === 2) return (
-    <AdminAuthLayout title="Verify your email" subtitle="Enter the OTP sent to your admin email">
-      <form onSubmit={handleVerify} className="space-y-4">
-        <input
-          className="input text-center text-2xl tracking-[0.5em] font-bold"
-          placeholder="------"
-          maxLength={6}
-          value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-          required
-        />
-        <button type="submit" disabled={loading || otp.length < 6}
-          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg disabled:opacity-50">
-          {loading ? "Verifying..." : "Verify & Continue"}
-        </button>
-      </form>
-      <p className="text-center text-xs text-gray-400 mt-4">
-        Sent to <span className="font-medium">{form.email}</span>
-      </p>
-    </AdminAuthLayout>
-  );
+const handleRegister = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    await authAPI.adminRegister(form);
+    toast.success("Admin account created! Please log in.");
+    navigate("/admin/login");
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Registration failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <AdminAuthLayout title="Admin Registration" subtitle="You need a valid invite code to proceed">
@@ -205,8 +165,18 @@ export function AdminRegister() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
-          <input className="input font-mono tracking-widest" placeholder="XXXX_XXXX_XXXX" value={form.invite_code}
-            onChange={(e) => setForm({ ...form, invite_code: e.target.value })} required />
+          <div className="relative">
+            <input className="input font-mono tracking-widest pr-10"
+              type={showInviteCode ? "text" : "password"}
+              placeholder="XXXX_XXXX_XXXX"
+              value={form.invite_code}
+              onChange={(e) => setForm({ ...form, invite_code: e.target.value })}
+              required />
+            <button type="button" onClick={() => setShowInviteCode(!showInviteCode)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {showInviteCode ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
         <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Creating..." : "Create Admin Account"}
@@ -224,10 +194,10 @@ export function AdminRegister() {
 // FIX 4: Forgot password flow for admin
 export function AdminForgotPassword() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
+  // const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
   const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState(null);
-  const [otp, setOtp] = useState("");
+  // const [userId, setUserId] = useState(null);
+  // const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

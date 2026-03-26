@@ -56,6 +56,15 @@ export default function Home() {
             <span className={`w-2 h-2 rounded-full ${canteen?.is_open ? "bg-green-500" : "bg-gray-400"}`} />
             <span className="text-sm text-gray-500">{canteen?.is_open ? "Open" : "Closed"} · {canteen?.hall}</span>
           </div>
+          {/* Manager Details */}
+          {canteen?.manager_id && (
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
+              <span className="font-medium text-gray-600">Manager:</span>
+              <span>{canteen.manager_id.name}</span>
+              {canteen.manager_id.phone && <span>· 📞 {canteen.manager_id.phone}</span>}
+              {canteen.manager_id.email && <span>· ✉ {canteen.manager_id.email}</span>}
+            </div>
+          )}
         </div>
         <button onClick={() => navigate("/halls")} className="text-sm text-brand-600 hover:underline">
           Change canteen
