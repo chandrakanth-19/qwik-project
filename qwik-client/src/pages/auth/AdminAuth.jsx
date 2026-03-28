@@ -194,10 +194,10 @@ const handleRegister = async (e) => {
 // FIX 4: Forgot password flow for admin
 export function AdminForgotPassword() {
   const navigate = useNavigate();
-  // const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
+  const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
   const [email, setEmail] = useState("");
-  // const [userId, setUserId] = useState(null);
-  // const [otp, setOtp] = useState("");
+  const [userId, setUserId] = useState(null);
+  const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
