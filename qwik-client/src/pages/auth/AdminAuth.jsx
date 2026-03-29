@@ -191,16 +191,17 @@ const handleRegister = async (e) => {
 }
 
 // ── Admin Forgot Password ──────────────────────────────────────
-// FIX 4: Forgot password flow for admin
 export function AdminForgotPassword() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1=email, 2=otp+newpass
-  const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState(null);
-  const [otp, setOtp] = useState("");
+  const [step, setStep]         = useState(1);
+  const [email, setEmail]       = useState("");
+  const [userId, setUserId]     = useState(null);
+  const [otp, setOtp]           = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();
@@ -215,6 +216,24 @@ export function AdminForgotPassword() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    try {
+      const { data } = await authAPI.forgotPassword({ email });
+      setUserId(data.data.user_id);
+      toast.success("OTP resent to your email!");
+      setResendCooldown(30);
+      const timer = setInterval(() => {
+        setResendCooldown((c) => {
+          if (c <= 1) { clearInterval(timer); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to resend OTP");
+    } finally { setResendLoading(false); }
   };
 
   const handleReset = async (e) => {
@@ -260,6 +279,18 @@ export function AdminForgotPassword() {
           {loading ? "Resetting..." : "Reset Password"}
         </button>
       </form>
+
+      {/* Resend OTP */}
+      <div className="mt-4 text-center">
+        <p className="text-sm text-gray-500 mb-2">Didn't receive the OTP?</p>
+        <button
+          onClick={handleResend}
+          disabled={resendLoading || resendCooldown > 0}
+          className="text-sm text-amber-600 font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+        >
+          {resendLoading ? "Sending..." : resendCooldown > 0 ? `Resend OTP (${resendCooldown}s)` : "Resend OTP"}
+        </button>
+      </div>
     </AdminAuthLayout>
   );
 

@@ -22,6 +22,8 @@ export default function Register() {
   const [pendingUser, setPendingUser] = useState(null); // store user info for auto-login
   const [otp, setOtp]     = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);  // 👈 added
   const [phoneError, setPhoneError] = useState("");
   const [form, setForm] = useState({
@@ -56,13 +58,35 @@ export default function Register() {
       toast.success("OTP sent! Check your email or phone.");
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed";
-      if (msg.toLowerCase().includes("already exists")) {
-        toast.error("Account already exists. If you registered before, check your email for OTP or request a new one from the login page.");
+      if (msg === "EMAIL_TAKEN") {
+        toast.error("This email is already registered. Please use a different email or log in.");
+      } else if (msg === "PHONE_TAKEN") {
+        toast.error("This phone number is already registered. Please use a different number or log in.");
       } else {
         toast.error(msg);
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Feature 1: Resend OTP with 30s cooldown
+  const handleResendOTP = async () => {
+    setResendLoading(true);
+    try {
+      await authAPI.forgotVerificationOTP({ email: form.email, phone: form.phone });
+      toast.success("OTP resent! Check your email or phone.");
+      setResendCooldown(30);
+      const timer = setInterval(() => {
+        setResendCooldown((c) => {
+          if (c <= 1) { clearInterval(timer); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to resend OTP");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -114,6 +138,16 @@ export default function Register() {
           {loading ? "Verifying..." : "Verify & Continue"}
         </button>
       </form>
+      <div className="mt-4 text-center">
+        <p className="text-sm text-gray-500 mb-2">Didn't receive the OTP?</p>
+        <button
+          onClick={handleResendOTP}
+          disabled={resendLoading || resendCooldown > 0}
+          className="text-sm text-brand-600 font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+        >
+          {resendLoading ? "Sending..." : resendCooldown > 0 ? `Resend OTP (${resendCooldown}s)` : "Resend OTP"}
+        </button>
+      </div>
     </AuthLayout>
   );
 

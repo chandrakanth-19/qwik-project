@@ -11,8 +11,9 @@ export function useAuth() {
   const navigate = useNavigate();
 
   const login = useCallback(async (credentials) => {
-    const { data } = await authAPI.login(credentials);
-    setAuth(data.data.user, data.data.token, data.data.role);
+    const { rememberMe, ...creds } = credentials;
+    const { data } = await authAPI.login(creds);
+    setAuth(data.data.user, data.data.token, data.data.role, rememberMe !== false);
     if (data.data.role === "merchant") navigate("/merchant/dashboard");
     else navigate("/home");
   }, [setAuth, navigate]);

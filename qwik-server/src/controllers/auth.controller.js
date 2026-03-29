@@ -19,8 +19,15 @@ exports.register = asyncHandler(async (req, res) => {
   if (email && !email.endsWith("@iitk.ac.in") && role !== ROLES.MERCHANT)
     return badReq(res, "Students must use an @iitk.ac.in email");
 
-  const existing = await User.findOne({ $or: [{ email }, { phone }] });
-  if (existing) return badReq(res, "Account already exists with this email or phone");
+  // Feature 4: tell user exactly which field is already taken
+  if (email) {
+    const emailTaken = await User.findOne({ email });
+    if (emailTaken) return badReq(res, "EMAIL_TAKEN");
+  }
+  if (phone) {
+    const phoneTaken = await User.findOne({ phone });
+    if (phoneTaken) return badReq(res, "PHONE_TAKEN");
+  }
 
   const userData = { name, email, phone, password, role: role || ROLES.CUSTOMER, hall_of_residence };
   if (role === ROLES.MERCHANT && (canteen_name || canteen_hall)) {

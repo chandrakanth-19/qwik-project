@@ -3,6 +3,8 @@ const Canteen  = require("../models/Canteen.model");
 const asyncHandler = require("../utils/asyncHandler");
 const { ok, created, badReq, notFound, forbidden } = require("../utils/apiResponse");
 
+const Review   = require("../models/Review.model");
+
 // GET /api/canteens/:id/menu?search=&category=&is_veg=
 exports.getMenu = asyncHandler(async (req, res) => {
   const { search, category, is_veg } = req.query;
@@ -71,4 +73,22 @@ exports.uploadPhoto = asyncHandler(async (req, res) => {
     { new: true }
   );
   ok(res, { photo_url: item.photo_url }, "Photo updated");
+});
+
+// GET /api/menu/canteen/:canteenId/reviews — merchant sees all reviews for their canteen items
+exports.getCanteenReviews = asyncHandler(async (req, res) => {
+  const canteen = await Canteen.findOne({ _id: req.params.id, manager_id: req.user._id });
+  if (!canteen) return forbidden(res, "Not your canteen");
+
+  // Get all menu items belonging to this canteen
+  const items = await MenuItem.find({ canteen_id: req.params.id }).select("_id name");
+  const itemIds = items.map((i) => i._id);
+
+  const reviews = await Review.find({ item_id: { $in: itemIds } })
+    .populate("user_id", "name")
+    .populate("item_id", "name")
+    .populate("order_id", "_id")
+    .sort({ createdAt: -1 });
+
+  ok(res, reviews);
 });

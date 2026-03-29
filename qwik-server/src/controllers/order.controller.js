@@ -83,7 +83,8 @@ exports.cancelOrder = asyncHandler(async (req, res) => {
   const order = await Order.findOne({ _id: req.params.id, user_id: req.user._id });
   if (!order) return notFound(res, "Order not found");
 
-  const cancellable = [ORDER_STATUS.PENDING, ORDER_STATUS.AWAITING_RECONFIRM];
+  // Feature 3: user can cancel anytime before payment (PENDING, AWAITING_RECONFIRM, ACCEPTED)
+  const cancellable = [ORDER_STATUS.PENDING, ORDER_STATUS.AWAITING_RECONFIRM, ORDER_STATUS.ACCEPTED];
   if (!cancellable.includes(order.status))
     return badReq(res, `Cannot cancel an order with status: ${order.status}`);
 
@@ -165,6 +166,38 @@ exports.updateOrderStatus = asyncHandler(async (req, res) => {
   if (merchant_note) order.merchant_note = merchant_note;
   await order.save();
   ok(res, order, "Order status updated");
+});
+
+// ── PUT /api/orders/:id/complete — customer marks order as received/complete
+exports.customerCompleteOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findOne({ _id: req.params.id, user_id: req.user._id });
+  if (!order) return notFound(res, "Order not found");
+  // Feature 6: user can mark complete from PREPARING onwards (after payment)
+  const completable = [ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
+  if (!completable.includes(order.status))
+    return badReq(res, "You can only mark an order as complete after the merchant starts preparing it");
+  order.status = ORDER_STATUS.COMPLETED;
+  await order.save();
+  ok(res, order, "Order marked as completed. Thank you!");
+});
+
+// ── PUT /api/orders/:id/merchant-cancel — merchant cancels if user hasn't paid
+exports.merchantCancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return notFound(res, "Order not found");
+
+  const canteen = await Canteen.findOne({ _id: order.canteen_id, manager_id: req.user._id });
+  if (!canteen) return forbidden(res, "Not your canteen");
+
+  // Feature 3: merchant can only cancel if user hasn't paid yet
+  const merchantCancellable = [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PENDING, ORDER_STATUS.AWAITING_RECONFIRM];
+  if (!merchantCancellable.includes(order.status))
+    return badReq(res, "Cannot cancel order — payment has already been received");
+
+  order.status = ORDER_STATUS.CANCELLED;
+  if (req.body.merchant_note) order.merchant_note = req.body.merchant_note;
+  await order.save();
+  ok(res, order, "Order cancelled");
 });
 
 // ── POST /api/orders/:id/review — submit review after COMPLETED

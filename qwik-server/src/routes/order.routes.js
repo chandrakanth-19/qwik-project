@@ -11,7 +11,9 @@ router.get("/canteen/:canteenId",          authorize("merchant"), ctrl.getCantee
 router.get("/:id",                         ctrl.getOrder);
 router.put("/:id/cancel",                  authorize("customer"), ctrl.cancelOrder);
 router.put("/:id/reconfirm",               authorize("customer"), ctrl.reconfirmOrder);
+router.put("/:id/complete",                authorize("customer"), ctrl.customerCompleteOrder);
 router.put("/:id/status",                  authorize("merchant"), ctrl.updateOrderStatus);
+router.put("/:id/merchant-cancel",         authorize("merchant"), ctrl.merchantCancelOrder);
 router.post("/:id/review",                 authorize("customer"), ctrl.submitReview);
 
 module.exports = router;

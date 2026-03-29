@@ -161,9 +161,50 @@ exports.toggleBlockMerchant = asyncHandler(async (req, res) => {
 
 // ── DELETE /api/admin/merchants/:id ──────────────────────────
 exports.removeMerchant = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(req.params.id, { is_blocked: true, is_approved: false });
+  const merchant = await User.findOne({ _id: req.params.id, role: ROLES.MERCHANT });
+  if (!merchant) return notFound(res, "Merchant not found");
+
+  // Deactivate their canteen(s) but keep manager_id so the record is traceable
+  // manager_id will point to a deleted user — MongoDB has no FK enforcement
   await Canteen.updateMany({ manager_id: req.params.id }, { is_active: false });
-  ok(res, null, "Merchant deactivated");
+
+  // Permanently delete the merchant User from DB
+  await User.deleteOne({ _id: req.params.id });
+
+  ok(res, null, "Merchant permanently deleted and canteen(s) deactivated");
+});
+
+// ── PUT /api/admin/canteens/:id/reactivate ───────────────────
+exports.reactivateCanteen = asyncHandler(async (req, res) => {
+  const { manager_id } = req.body;
+  if (!manager_id) return badReq(res, "You must assign a merchant to reactivate a canteen");
+
+  const merchant = await User.findOne({ _id: manager_id, role: ROLES.MERCHANT, is_approved: true });
+  if (!merchant) return badReq(res, "Merchant not found or not approved");
+
+  // Prevent assigning a merchant who already manages an active canteen
+  const conflict = await Canteen.findOne({ manager_id, is_active: true, _id: { $ne: req.params.id } });
+  if (conflict) return badReq(res, "This merchant already manages an active canteen");
+
+  const canteen = await Canteen.findByIdAndUpdate(
+    req.params.id,
+    { is_active: true, manager_id },
+    { new: true }
+  ).populate("manager_id", "name email");
+
+  if (!canteen) return notFound(res, "Canteen not found");
+  ok(res, canteen, "Canteen reactivated and merchant assigned");
+});
+
+// ── DELETE /api/admin/canteens/:id/hard ──────────────────────
+// Only allowed when canteen is already deactivated
+exports.hardDeleteCanteen = asyncHandler(async (req, res) => {
+  const canteen = await Canteen.findById(req.params.id);
+  if (!canteen) return notFound(res, "Canteen not found");
+  if (canteen.is_active) return badReq(res, "Cannot permanently delete an active canteen. Deactivate it first.");
+
+  await Canteen.deleteOne({ _id: req.params.id });
+  ok(res, null, "Canteen permanently deleted");
 });
 
 // ── PUT /api/admin/merchants/:id ─────────────────────────────

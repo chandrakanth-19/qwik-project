@@ -165,10 +165,36 @@ export default function MerchantOrders() {
                     )}
 
                     {o.status === "READY" && (
-                      <button onClick={() => updateStatus(o._id, ORDER_STATUS.COMPLETED)}
-                        className="w-full flex items-center justify-center gap-1 bg-gray-700 hover:bg-gray-800 text-white text-sm py-2 rounded-lg">
-                        <CheckCircle size={14} /> Mark Completed
-                      </button>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 text-center">Waiting for customer to confirm receipt...</p>
+                        <button onClick={() => updateStatus(o._id, ORDER_STATUS.COMPLETED)}
+                          className="w-full flex items-center justify-center gap-1 bg-gray-700 hover:bg-gray-800 text-white text-sm py-2 rounded-lg">
+                          <CheckCircle size={14} /> Mark Completed (Override)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Feature 3: merchant can cancel if user hasn't paid yet */}
+                    {(o.status === "ACCEPTED" || o.status === "PENDING" || o.status === "AWAITING_RECONFIRM") && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm("Cancel this order? The customer will be notified.")) return;
+                            try {
+                              await orderAPI.merchantCancel(o._id, { merchant_note: note || undefined });
+                              toast.success("Order cancelled");
+                              setSelected(null);
+                              setNote("");
+                              await load(canteenId);
+                            } catch (err) {
+                              toast.error(err.response?.data?.message || "Failed to cancel");
+                            }
+                          }}
+                          className="w-full text-xs text-red-500 border border-red-200 hover:bg-red-50 py-1.5 rounded-lg transition-colors"
+                        >
+                          Cancel Order (not yet paid)
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

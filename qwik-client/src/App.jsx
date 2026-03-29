@@ -35,6 +35,7 @@ import MenuManager       from "./pages/merchant/MenuManager";
 import PartyRequests     from "./pages/merchant/PartyRequests";
 import { CanteenSettings, Analytics } from "./pages/merchant/MerchantSettings";
 import MerchantProfile   from "./pages/merchant/MerchantProfile";
+import MerchantReviews   from "./pages/merchant/MerchantReviews";
 
 // Admin pages
 import AdminDashboard    from "./pages/admin/AdminDashboard";
@@ -104,6 +105,7 @@ export default function App() {
       <Route path="/merchant/dashboard" element={<MerchantRoute><MerchantDashboard /></MerchantRoute>} />
       <Route path="/merchant/orders"    element={<MerchantRoute><MerchantOrders /></MerchantRoute>} />
       <Route path="/merchant/menu"      element={<MerchantRoute><MenuManager /></MerchantRoute>} />
+      <Route path="/merchant/reviews"   element={<MerchantRoute><MerchantReviews /></MerchantRoute>} />
       <Route path="/merchant/party"     element={<MerchantRoute><PartyRequests /></MerchantRoute>} />
       <Route path="/merchant/settings"  element={<MerchantRoute><CanteenSettings /></MerchantRoute>} />
       <Route path="/merchant/analytics" element={<MerchantRoute><Analytics /></MerchantRoute>} />

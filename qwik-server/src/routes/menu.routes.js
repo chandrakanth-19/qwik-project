@@ -13,6 +13,7 @@ const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
 
 // Canteen-scoped menu
 router.get("/canteen/:id",    ctrl.getMenu);
+router.get("/canteen/:id/reviews", protect, authorize("merchant"), ctrl.getCanteenReviews);
 router.post("/canteen/:id",   protect, authorize("merchant"), ctrl.addItem);
 
 // Item-level operations

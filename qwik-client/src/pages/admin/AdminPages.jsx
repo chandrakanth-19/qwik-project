@@ -61,16 +61,19 @@ export function UserManagement() {
 }
 
 // ── Canteen Management ────────────────────────────────────────
-// FIX 2: Admin can Add Canteen (assign merchant, name, location, timings) + Edit existing
+
+// ── Canteen Management ────────────────────────────────────────
 export function CanteenManagement() {
-  const [canteens,         setCanteens]         = useState([]);
+  const [canteens,          setCanteens]          = useState([]);
   const [approvedMerchants, setApprovedMerchants] = useState([]);
-  const [loading,          setLoading]          = useState(true);
-  const [saving,           setSaving]           = useState(false);
-  const [editing,          setEditing]          = useState(null);
-  const [editForm,         setEditForm]         = useState({});
-  const [showAdd,          setShowAdd]          = useState(false);
-  const [addForm,          setAddForm]          = useState({
+  const [loading,           setLoading]           = useState(true);
+  const [saving,            setSaving]            = useState(false);
+  const [editing,           setEditing]           = useState(null);
+  const [editForm,          setEditForm]          = useState({});
+  const [showAdd,           setShowAdd]           = useState(false);
+  const [reactivating,      setReactivating]      = useState(null);
+  const [reactivateMerchant, setReactivateMerchant] = useState("");
+  const [addForm,           setAddForm]           = useState({
     name: "", hall: "", location: "", opening_time: "08:00", closing_time: "22:00", contact: "", manager_id: "",
   });
 
@@ -123,10 +126,38 @@ export function CanteenManagement() {
   };
 
   const deactivate = async (id) => {
-    if (!window.confirm("Deactivate this canteen?")) return;
+    if (!window.confirm("Deactivate this canteen? It will become unavailable to customers.")) return;
     await adminAPI.deleteCanteen(id);
     toast.success("Canteen deactivated");
     await load();
+  };
+
+  const handleReactivate = async (id) => {
+    if (!reactivateMerchant) {
+      toast.error("Please select a merchant to assign before reactivating");
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminAPI.reactivateCanteen(id, { manager_id: reactivateMerchant });
+      toast.success("Canteen reactivated and merchant assigned!");
+      setReactivating(null);
+      setReactivateMerchant("");
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reactivate");
+    } finally { setSaving(false); }
+  };
+
+  const handleHardDelete = async (id, name) => {
+    if (!window.confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
+    try {
+      await adminAPI.hardDeleteCanteen(id);
+      toast.success("Canteen permanently deleted");
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete");
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
@@ -135,14 +166,12 @@ export function CanteenManagement() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">Canteen Management</h1>
-        {/* FIX 2: Add Canteen button */}
-        <button onClick={() => setShowAdd(!showAdd)}
-          className="btn-primary flex items-center gap-2">
+        <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Add Canteen
         </button>
       </div>
 
-      {/* FIX 2: Add Canteen form */}
+      {/* Add Canteen form */}
       {showAdd && (
         <div className="card p-5 mb-4 border-brand-400 border">
           <div className="flex justify-between items-center mb-3">
@@ -205,36 +234,94 @@ export function CanteenManagement() {
           <p className="text-gray-400 text-center py-12">No canteens yet.</p>
         )}
         {canteens.map((c) => (
-          <div key={c._id} className={`card overflow-hidden ${!c.is_active ? "opacity-50" : ""}`}>
+          <div key={c._id} className={`card overflow-hidden ${!c.is_active ? "border border-red-100" : ""}`}>
             <div className="p-4 flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold">{c.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_open ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                    {c.is_open ? "Open" : "Closed"}
-                  </span>
-                  {!c.is_active && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Deactivated</span>}
+                  <p className={`font-semibold ${!c.is_active ? "text-gray-400" : ""}`}>{c.name}</p>
+                  {c.is_active ? (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${c.is_open ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      {c.is_open ? "Open" : "Closed"}
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                      ⚠ Deactivated
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {c.hall || c.location || "—"} · Manager: {c.manager_id?.name || "None"}
+                  {c.hall || c.location || "—"} · Manager: {c.manager_id?.name || <span className="text-red-400">None</span>}
                 </p>
                 <p className="text-xs text-gray-400">{c.opening_time} – {c.closing_time} · {c.contact || "No contact"}</p>
               </div>
 
-              {c.is_active && (
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button onClick={() => editing === c._id ? setEditing(null) : openEdit(c)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Edit canteen">
-                    {editing === c._id ? <X size={15} /> : <Pencil size={15} />}
-                  </button>
-                  <button onClick={() => deactivate(c._id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg" title="Deactivate">
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Edit — always available */}
+                <button
+                  onClick={() => editing === c._id ? setEditing(null) : openEdit(c)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                  title="Edit canteen"
+                >
+                  {editing === c._id ? <X size={15} /> : <Pencil size={15} />}
+                </button>
+
+                {/* Deactivate — only when active */}
+                {c.is_active && (
+                  <button onClick={() => deactivate(c._id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg" title="Deactivate canteen">
                     <Trash2 size={15} />
                   </button>
-                </div>
-              )}
+                )}
+
+                {/* Reactivate + permanent delete — only when deactivated */}
+                {!c.is_active && (
+                  <>
+                    <button
+                      onClick={() => { setReactivating(reactivating === c._id ? null : c._id); setReactivateMerchant(""); }}
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-medium"
+                      title="Reactivate canteen"
+                    >
+                      Reactivate
+                    </button>
+                    <button
+                      onClick={() => handleHardDelete(c._id, c.name)}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                      title="Permanently delete canteen"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Inline edit form */}
+            {/* Reactivate panel */}
+            {!c.is_active && reactivating === c._id && (
+              <div className="border-t bg-green-50 p-4">
+                <p className="text-sm font-medium text-green-800 mb-3">Assign a merchant to reactivate this canteen</p>
+                <div className="flex gap-2 items-end flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Select Merchant *</label>
+                    <select className="input text-sm" value={reactivateMerchant}
+                      onChange={(e) => setReactivateMerchant(e.target.value)}>
+                      <option value="">— Select approved merchant —</option>
+                      {approvedMerchants.map((m) => (
+                        <option key={m._id} value={m._id}>{m.name} ({m.email || m.phone})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => handleReactivate(c._id)}
+                    disabled={saving || !reactivateMerchant}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg disabled:opacity-50"
+                  >
+                    {saving ? "Reactivating..." : "Confirm Reactivate"}
+                  </button>
+                  <button onClick={() => setReactivating(null)} className="btn-secondary text-sm">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Inline edit form — works for active AND deactivated canteens */}
             {editing === c._id && (
               <div className="border-t bg-gray-50 p-4">
                 <p className="text-sm font-medium text-gray-700 mb-3">Edit Canteen Details</p>

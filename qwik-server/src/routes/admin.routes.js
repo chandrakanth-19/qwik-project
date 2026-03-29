@@ -21,7 +21,9 @@ router.put("/users/:id/block",          ctrl.toggleBlockUser);
 router.get("/canteens",                 ctrl.getAllCanteens);
 router.post("/canteens",                ctrl.addCanteen);
 router.put("/canteens/:id",             ctrl.updateCanteen);
+router.put("/canteens/:id/reactivate",  ctrl.reactivateCanteen);
 router.delete("/canteens/:id",          ctrl.deleteCanteen);
+router.delete("/canteens/:id/hard",     ctrl.hardDeleteCanteen);
 
 
 module.exports = router;

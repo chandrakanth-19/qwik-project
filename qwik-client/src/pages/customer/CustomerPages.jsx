@@ -130,6 +130,8 @@ export function Checkout() {
 export function OrderTracking({ orderId }) {
   const navigate = useNavigate();
   const [reconfirmLoading, setReconfirmLoading] = useState(false);
+  const [cancelLoading, setCancelLoading]       = useState(false);
+  const [completeLoading, setCompleteLoading]   = useState(false);
   const [acceptedPopup, setAcceptedPopup]       = useState(false); // FIX 7
   const prevStatusRef = useRef(null);                               // FIX 7: track prev status
 
@@ -157,6 +159,30 @@ export function OrderTracking({ orderId }) {
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed");
     } finally { setReconfirmLoading(false); }
+  };
+
+  // Feature 3: user cancel (works for PENDING, AWAITING_RECONFIRM, ACCEPTED)
+  const handleCancel = async () => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setCancelLoading(true);
+    try {
+      await orderAPI.cancel(orderId);
+      toast.success("Order cancelled.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to cancel order");
+    } finally { setCancelLoading(false); }
+  };
+
+  // Feature 6: user marks order complete (from PREPARING onwards)
+  const handleMarkComplete = async () => {
+    if (!window.confirm("Confirm you have received your order?")) return;
+    setCompleteLoading(true);
+    try {
+      await orderAPI.customerComplete(orderId);
+      toast.success("Order marked as completed!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed");
+    } finally { setCompleteLoading(false); }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
@@ -223,6 +249,19 @@ export function OrderTracking({ orderId }) {
           </div>
         </div>
 
+        {/* Feature 3: Cancel button — visible before payment (PENDING or ACCEPTED) */}
+        {(order.status === "PENDING" || order.status === "ACCEPTED") && (
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <button
+              onClick={handleCancel}
+              disabled={cancelLoading}
+              className="w-full text-sm text-red-500 border border-red-200 hover:bg-red-50 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {cancelLoading ? "Cancelling..." : "Cancel Order"}
+            </button>
+          </div>
+        )}
+
         {/* Partial accept — reconfirm UI */}
         {order.status === "AWAITING_RECONFIRM" && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-3">
@@ -264,6 +303,16 @@ export function OrderTracking({ orderId }) {
       {order.status === "ACCEPTED" && (
         <button onClick={() => navigate(`/pay/${orderId}`)} className="btn-primary w-full">
           Proceed to Payment
+        </button>
+      )}
+      {/* Feature 6: user can mark complete from PREPARING onwards */}
+      {(order.status === "PREPARING" || order.status === "READY") && (
+        <button
+          onClick={handleMarkComplete}
+          disabled={completeLoading}
+          className="btn-primary w-full mt-2"
+        >
+          {completeLoading ? "Marking..." : "✅ Mark as Received / Complete"}
         </button>
       )}
       {order.status === "COMPLETED" && !order.is_rated && (

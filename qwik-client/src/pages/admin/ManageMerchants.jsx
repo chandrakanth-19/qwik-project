@@ -26,10 +26,10 @@ export default function ManageMerchants() {
     await load();
   };
 
-  const handleRemove = async (id) => {
-    if (!window.confirm("Deactivate this merchant and their canteen?")) return;
+  const handleRemove = async (id, name) => {
+    if (!window.confirm(`Permanently delete merchant "${name}"? Their account will be removed from the DB and their canteen will be deactivated.`)) return;
     await adminAPI.removeMerchant(id);
-    toast.success("Merchant deactivated");
+    toast.success("Merchant permanently deleted and canteen deactivated");
     await load();
   };
 
@@ -168,9 +168,9 @@ export default function ManageMerchants() {
                       title={m.is_blocked ? "Unblock" : "Block"}>
                       {m.is_blocked ? <ShieldCheck size={15} /> : <ShieldOff size={15} />}
                     </button>
-                    <button onClick={() => handleRemove(m._id)}
+                    <button onClick={() => handleRemove(m._id, m.name)}
                       className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"
-                      title="Deactivate">
+                      title="Permanently delete merchant">
                       <Trash2 size={15} />
                     </button>
                   </div>

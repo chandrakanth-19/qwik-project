@@ -9,6 +9,7 @@ import { authAPI } from "../../api";
 export default function Login() {
   const { login } = useAuth();
   const [form, setForm]                   = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe]       = useState(true);
   const [loading, setLoading]             = useState(false);
   const [showPassword, setShowPassword] = useState(false);  // 👈 added
   const [unverified, setUnverified]       = useState(false);   // Fix 8: no flash
@@ -35,7 +36,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(form);
+      await login({ ...form, rememberMe });
       // Fix 4: /auth/login rejects admin role server-side → won't reach here for admins
       toast.success("Welcome back!");
     } catch (err) {
@@ -121,7 +122,16 @@ export default function Login() {
             </button>
           </div>
         </div>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            Remember me
+          </label>
           <Link to="/forgot-password" className="text-sm text-brand-600 hover:underline">
             Forgot password?
           </Link>
