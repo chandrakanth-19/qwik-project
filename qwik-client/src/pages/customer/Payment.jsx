@@ -11,15 +11,8 @@ import {
 import { paymentAPI, orderAPI } from "../../api";
 import { Spinner } from "../../components";
 
-// Stripe instance — loaded once
-let stripePromise = null;
-const getStripe = (key) => {
-  if (!stripePromise) stripePromise = loadStripe(key);
-  return stripePromise;
-};
-
 // ── Inner form component ──────────────────────────────────────
-function CheckoutForm({ orderId, amount }) {
+function CheckoutForm({ orderId, amount, onCancel, cancelling }) {
   const stripe   = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -31,7 +24,6 @@ function CheckoutForm({ orderId, amount }) {
     setPaying(true);
 
     try {
-      // Confirm payment with Stripe
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
@@ -44,7 +36,6 @@ function CheckoutForm({ orderId, amount }) {
       }
 
       if (paymentIntent.status === "succeeded") {
-        // Verify on backend
         await paymentAPI.verify({
           payment_intent_id: paymentIntent.id,
           order_id: orderId,
@@ -68,6 +59,14 @@ function CheckoutForm({ orderId, amount }) {
       >
         {paying ? "Processing..." : `Pay ₹${amount}`}
       </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={cancelling}
+        className="w-full text-sm text-red-500 border border-red-200 hover:bg-red-50 py-2 rounded-lg transition-colors disabled:opacity-50"
+      >
+        {cancelling ? "Cancelling..." : "Cancel Order"}
+      </button>
     </form>
   );
 }
@@ -76,25 +75,47 @@ function CheckoutForm({ orderId, amount }) {
 export default function PaymentPage() {
   const { orderId } = useParams();
   const navigate    = useNavigate();
+
   const [order,        setOrder]        = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
-  const [stripeKey,    setStripeKey]    = useState(null);
+  // BUG 3 FIX: Don't cache stripePromise as a module singleton.
+  // Store it in component state so it's always tied to the key from the backend.
+  const [stripePromise, setStripePromise] = useState(null);
   const [loading,      setLoading]      = useState(true);
+  const [cancelling,   setCancelling]   = useState(false);
+  const [error,        setError]        = useState(null);
 
   useEffect(() => {
     const init = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Get order details
+        // Get order details first
         const { data: orderData } = await orderAPI.getOne(orderId);
-        setOrder(orderData.data);
+        const orderObj = orderData.data;
+        setOrder(orderObj);
 
-        // Initiate payment — get client secret from backend
+        // BUG 2 FIX: If the order is already in PAYMENT_PENDING (i.e. user refreshed
+        // or navigated back), we re-use the existing payment intent by calling initiate
+        // again. The backend must support idempotent initiation for PAYMENT_PENDING
+        // orders — see the server fix below. If the order is already PAID or beyond,
+        // redirect away immediately.
+        const terminalStatuses = ["PAID", "PREPARING", "READY", "COMPLETED", "CANCELLED", "REJECTED", "PAYMENT_FAILED"];
+        if (terminalStatuses.includes(orderObj.status)) {
+          navigate(`/track/${orderId}`);
+          return;
+        }
+
+        // Only ACCEPTED and PAYMENT_PENDING orders should reach here
         const { data: payData } = await paymentAPI.initiate(orderId);
         setClientSecret(payData.data.client_secret);
-        setStripeKey(payData.data.publishable_key);
+        // BUG 3 FIX: Always create a fresh Stripe instance from the key returned
+        // by the backend. Never rely on a module-level singleton.
+        setStripePromise(loadStripe(payData.data.publishable_key));
       } catch (err) {
-        toast.error("Failed to load payment");
-        navigate(`/track/${orderId}`);
+        const msg = err.response?.data?.message || "Failed to load payment";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -102,9 +123,34 @@ export default function PaymentPage() {
     init();
   }, [orderId]);
 
+  const handleCancel = async () => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setCancelling(true);
+    try {
+      await orderAPI.cancel(orderId);
+      toast.success("Order cancelled.");
+      navigate(`/track/${orderId}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to cancel order");
+      setCancelling(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center py-20">
       <Spinner size="lg" />
+    </div>
+  );
+
+  // Show error state with a back button instead of silently redirecting
+  if (error) return (
+    <div className="max-w-md mx-auto text-center py-16">
+      <p className="text-4xl mb-4">⚠️</p>
+      <p className="text-gray-700 font-medium mb-2">Unable to load payment</p>
+      <p className="text-sm text-gray-400 mb-6">{error}</p>
+      <button onClick={() => navigate(`/track/${orderId}`)} className="btn-secondary">
+        Back to Order
+      </button>
     </div>
   );
 
@@ -134,13 +180,13 @@ export default function PaymentPage() {
       </div>
 
       {/* Stripe payment form */}
-      {clientSecret && stripeKey && (
+      {clientSecret && stripePromise && (
         <div className="card p-5">
           <h2 className="font-medium text-sm text-gray-500 mb-4">
             Payment — powered by Stripe
           </h2>
           <Elements
-            stripe={getStripe(stripeKey)}
+            stripe={stripePromise}
             options={{
               clientSecret,
               appearance: {
@@ -149,7 +195,12 @@ export default function PaymentPage() {
               },
             }}
           >
-            <CheckoutForm orderId={orderId} amount={order?.total_amount} />
+            <CheckoutForm
+              orderId={orderId}
+              amount={order?.total_amount}
+              onCancel={handleCancel}
+              cancelling={cancelling}
+            />
           </Elements>
         </div>
       )}

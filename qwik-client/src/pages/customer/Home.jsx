@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 import { menuAPI, canteenAPI } from "../../api";
 import { FoodCard, Spinner } from "../../components";
 import useCartStore from "../../store/cartStore";
@@ -9,11 +9,16 @@ import useCartStore from "../../store/cartStore";
 export default function Home() {
   const navigate    = useNavigate();
   const addItem     = useCartStore((s) => s.addItem);
-  const [canteen, setCanteen] = useState(null);
-  const [items,   setItems]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState("");
-  const [vegOnly, setVegOnly] = useState(false);
+  const pendingSwitchItem    = useCartStore((s) => s.pendingSwitchItem);
+  const confirmSwitchCanteen = useCartStore((s) => s.confirmSwitchCanteen);
+  const cancelSwitchCanteen  = useCartStore((s) => s.cancelSwitchCanteen);
+  const cartCanteenId        = useCartStore((s) => s.canteen_id);
+
+  const [canteen,  setCanteen]  = useState(null);
+  const [items,    setItems]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [search,   setSearch]   = useState("");
+  const [vegOnly,  setVegOnly]  = useState(false);
   const [category, setCategory] = useState("");
 
   const canteenId = sessionStorage.getItem("selected_canteen");
@@ -41,13 +46,50 @@ export default function Home() {
 
   const handleAdd = (item) => {
     addItem({ item_id: item._id, name: item.name, price: item.price, canteen_id: canteenId });
-    toast.success(`${item.name} added to cart`);
+    // Only show toast if the item was actually added (no pending switch)
+    if (!useCartStore.getState().pendingSwitchItem) {
+      toast.success(`${item.name} added to cart`);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
 
   return (
     <div>
+      {/* ── Multi-canteen switch confirmation modal ─────────── */}
+      {pendingSwitchItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <div className="text-3xl mb-3 text-center">🛒</div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
+              Different canteen
+            </h2>
+            <p className="text-sm text-gray-500 text-center mb-5">
+              Your cart has items from another canteen. Adding{" "}
+              <span className="font-semibold text-gray-700">
+                {pendingSwitchItem.name}
+              </span>{" "}
+              will clear your current cart.
+            </p>
+            <button
+              onClick={() => {
+                confirmSwitchCanteen();
+                toast.success(`${pendingSwitchItem.name} added to cart`);
+              }}
+              className="btn-primary w-full mb-2"
+            >
+              Clear cart &amp; add item
+            </button>
+            <button
+              onClick={cancelSwitchCanteen}
+              className="btn-secondary w-full text-sm"
+            >
+              Keep current cart
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -56,7 +98,6 @@ export default function Home() {
             <span className={`w-2 h-2 rounded-full ${canteen?.is_open ? "bg-green-500" : "bg-gray-400"}`} />
             <span className="text-sm text-gray-500">{canteen?.is_open ? "Open" : "Closed"} · {canteen?.hall}</span>
           </div>
-          {/* Manager Details */}
           {canteen?.manager_id && (
             <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
               <span className="font-medium text-gray-600">Manager:</span>
