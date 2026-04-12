@@ -7,7 +7,7 @@ const paymentSchema = new mongoose.Schema(
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true },
     method: { type: String, enum: Object.values(PAYMENT_METHOD) },
-    gateway_txn_id: { type: String, default: "" }, // RazorPay txn id
+    gateway_txn_id: { type: String, default: "" }, 
     razorpay_order_id: { type: String, default: "" },
     status: {
       type: String,
