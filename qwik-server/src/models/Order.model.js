@@ -26,6 +26,8 @@ const orderSchema = new mongoose.Schema(
     tax_amount: { type: Number, default: 0 },
     total_amount: { type: Number, required: true },
     merchant_note: { type: String, default: "" }, // reason for partial/full reject
+    // ETA set by merchant when accepting the order (free-text, e.g. "15 mins")
+    eta: { type: String, default: "" },
     payment_id: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", default: null },
     is_rated: { type: Boolean, default: false },
     placed_at: { type: Date, default: Date.now },

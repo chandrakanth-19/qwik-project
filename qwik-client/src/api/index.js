@@ -2,15 +2,17 @@ import api from "./axios";
 
 // ── AUTH ─────────────────────────────────────────────────────
 export const authAPI = {
-  register:       (d) => api.post("/auth/register", d),
-  verifyOTP:      (d) => api.post("/auth/verify-otp", d),
-  login:          (d) => api.post("/auth/login", d),
-  adminLogin:     (d) => api.post("/auth/admin-login", d),
-  adminRegister:  (d) => api.post("/auth/admin-register", d),
-  forgotPassword: (d) => api.post("/auth/forgot-password", d),
-  resetPassword:  (d) => api.post("/auth/reset-password", d),
-  logout:         ()  => api.post("/auth/logout"),
+  register:              (d) => api.post("/auth/register", d),
+  verifyOTP:             (d) => api.post("/auth/verify-otp", d),
+  login:                 (d) => api.post("/auth/login", d),
+  adminLogin:            (d) => api.post("/auth/admin-login", d),
+  adminRegister:         (d) => api.post("/auth/admin-register", d),
+  forgotPassword:        (d) => api.post("/auth/forgot-password", d),
+  resetPassword:         (d) => api.post("/auth/reset-password", d),
+  logout:                ()  => api.post("/auth/logout"),
   forgotVerificationOTP: (d) => api.post("/auth/resend-otp", d),
+  // FIX 4: In-session password change (all roles)
+  changePassword:        (d) => api.post("/auth/change-password", d),
 };
 
 // ── USER ─────────────────────────────────────────────────────
@@ -18,6 +20,9 @@ export const userAPI = {
   getMe:       ()  => api.get("/users/me"),
   updateMe:    (d) => api.put("/users/me", d),
   uploadPhoto: (f) => api.post("/users/me/photo", f, { headers: { "Content-Type": "multipart/form-data" } }),
+  // FIX 3: Merchant customer management
+  getCanteenCustomers:  ()      => api.get("/users/canteen-customers"),
+  merchantToggleBlock:  (userId)=> api.put(`/users/${userId}/merchant-block`),
 };
 
 // ── CANTEEN ──────────────────────────────────────────────────
@@ -32,7 +37,7 @@ export const canteenAPI = {
 // ── MENU ─────────────────────────────────────────────────────
 export const menuAPI = {
   getMenu:            (canteenId, params) => api.get(`/menu/canteen/${canteenId}`, { params }),
-  getCanteenReviews:  (canteenId)         => api.get(`/menu/canteen/${canteenId}/reviews`), // Feature 2
+  getCanteenReviews:  (canteenId)         => api.get(`/menu/canteen/${canteenId}/reviews`),
   addItem:            (canteenId, d)      => api.post(`/menu/canteen/${canteenId}`, d),
   updateItem:         (itemId, d)         => api.put(`/menu/${itemId}`, d),
   deleteItem:         (itemId)            => api.delete(`/menu/${itemId}`),
@@ -42,16 +47,16 @@ export const menuAPI = {
 
 // ── ORDERS ───────────────────────────────────────────────────
 export const orderAPI = {
-  place:              (d)          => api.post("/orders", d),
-  getOne:             (id)         => api.get(`/orders/${id}`),
-  myOrders:           ()           => api.get("/orders/me"),
-  cancel:             (id)         => api.put(`/orders/${id}/cancel`),
-  reconfirm:          (id)         => api.put(`/orders/${id}/reconfirm`),
-  customerComplete:   (id)         => api.put(`/orders/${id}/complete`),      // Feature 6
-  merchantCancel:     (id, d)      => api.put(`/orders/${id}/merchant-cancel`, d), // Feature 3
-  getCanteenOrders:   (cid, params)=> api.get(`/orders/canteen/${cid}`, { params }),
-  updateStatus:       (id, d)      => api.put(`/orders/${id}/status`, d),
-  submitReview:       (id, d)      => api.post(`/orders/${id}/review`, d),
+  place:            (d)           => api.post("/orders", d),
+  getOne:           (id)          => api.get(`/orders/${id}`),
+  myOrders:         ()            => api.get("/orders/me"),
+  cancel:           (id)          => api.put(`/orders/${id}/cancel`),
+  reconfirm:        (id)          => api.put(`/orders/${id}/reconfirm`),
+  customerComplete: (id)          => api.put(`/orders/${id}/complete`),
+  merchantCancel:   (id, d)       => api.put(`/orders/${id}/merchant-cancel`, d),
+  getCanteenOrders: (cid, params) => api.get(`/orders/canteen/${cid}`, { params }),
+  updateStatus:     (id, d)       => api.put(`/orders/${id}/status`, d),
+  submitReview:     (id, d)       => api.post(`/orders/${id}/review`, d),
 };
 
 // ── RESERVATIONS ─────────────────────────────────────────────

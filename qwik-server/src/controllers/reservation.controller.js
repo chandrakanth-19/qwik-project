@@ -11,9 +11,17 @@ exports.create = asyncHandler(async (req, res) => {
   const canteen = await Canteen.findById(canteen_id);
   if (!canteen || !canteen.is_active) return badReq(res, "Canteen not available");
 
-  // Enforce 4-hour minimum advance for cake orders
+  // Enforce 4-hour minimum advance for cake orders.
+  // FIX: `${date}T${time_slot}:00` is treated as LOCAL time by the JS Date
+  // constructor only when it contains an explicit offset. Without one, V8
+  // treats the combined string as LOCAL — but to be safe and portable we
+  // parse date/time components manually so the comparison is always in the
+  // same timezone (server local, which matches what the user typed).
   if (type === RESERVATION_TYPE.CAKE_ORDER) {
-    const reservationDateTime = new Date(`${date}T${time_slot}:00`);
+    const [year, month, day] = date.split("-").map(Number);
+    const [hour, minute]     = time_slot.split(":").map(Number);
+    // Build Date in local time explicitly
+    const reservationDateTime = new Date(year, month - 1, day, hour, minute, 0, 0);
     const hoursAhead = (reservationDateTime - Date.now()) / (1000 * 60 * 60);
     if (hoursAhead < CAKE_MIN_ADVANCE_HOURS)
       return badReq(res, `Cake orders must be placed at least ${CAKE_MIN_ADVANCE_HOURS} hours in advance`);
@@ -58,7 +66,7 @@ exports.getCanteenReservations = asyncHandler(async (req, res) => {
   if (!canteen) return forbidden(res, "Not your canteen");
 
   const reservations = await Reservation.find({ canteen_id: req.params.canteenId })
-    .populate("user_id", "name email phone")
+    .populate("user_id", "name email phone room_no hall_of_residence")
     .sort({ date: 1, time_slot: 1 });
   ok(res, reservations);
 });
