@@ -30,7 +30,7 @@ export function usePolling(fetchFn, interval = 4000, stopWhen = () => false) {
       if (!stopped.current) poll();
     }, interval);
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [fetchFn, interval]);
 
   return { data, loading, error };
 }
