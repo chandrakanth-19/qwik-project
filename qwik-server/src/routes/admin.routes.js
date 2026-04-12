@@ -9,7 +9,6 @@ router.get("/dashboard",                ctrl.getDashboard);
 router.get("/merchants/pending",        ctrl.getPendingMerchants);
 router.put("/merchants/:id/approve",    ctrl.approveMerchant);
 router.put("/merchants/:id/reject",     ctrl.rejectMerchant);
-router.get("/merchants/approved", ctrl.getApprovedMerchants);
 router.get("/merchants/approved",        ctrl.getApprovedMerchants);
 router.put("/merchants/:id/block",        ctrl.toggleBlockMerchant);
 router.delete("/merchants/:id",           ctrl.removeMerchant);
