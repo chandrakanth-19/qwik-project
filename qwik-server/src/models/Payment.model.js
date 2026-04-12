@@ -8,7 +8,7 @@ const paymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     method: { type: String, enum: Object.values(PAYMENT_METHOD) },
     gateway_txn_id: { type: String, default: "" }, 
-    razorpay_order_id: { type: String, default: "" },
+    stripe_order_id: { type: String, default: "" },
     status: {
       type: String,
       enum: Object.values(PAYMENT_STATUS),
