@@ -13,6 +13,7 @@ exports.updateMe = asyncHandler(async (req, res) => {
   if (phone) updates.phone = phone;
   if (hall_of_residence) updates.hall_of_residence = hall_of_residence;
   if (room_no) updates.room_no = room_no;
+  if (req.body.email) updates.email = req.body.email;
 
   const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
   ok(res, user, "Profile updated");
