@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { authAPI } from "../../api";
 
@@ -25,11 +25,11 @@ function AdminAuthLayout({ children, title, subtitle }) {
 // ── Admin Login ───────────────────────────────────────────────
 export function AdminLogin() {
   const { adminLogin } = useAuth();
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
+  const [form,         setForm]         = useState({ email: "", password: "" });
+  const [loading,      setLoading]      = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [wrongPass, setWrongPass] = useState(false);
+  const [notFound,     setNotFound]     = useState(false);
+  const [wrongPass,    setWrongPass]    = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +42,6 @@ export function AdminLogin() {
     } catch (err) {
       const raw = err.response?.data?.message || "Login failed";
       const msg = raw.toLowerCase();
-      // FIX 3: clearly split "no account" vs "wrong password"
       if (msg.includes("invalid admin credentials") || msg.includes("check your password")) {
         setWrongPass(true);
       } else if (msg.includes("no admin account") || msg.includes("not found")) {
@@ -50,9 +49,7 @@ export function AdminLogin() {
       } else {
         toast.error(raw);
       }
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
@@ -66,8 +63,8 @@ export function AdminLogin() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <div className="relative">
-            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="••••••••" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="••••••••"
+              value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -75,11 +72,10 @@ export function AdminLogin() {
           </div>
         </div>
         <div className="flex justify-end">
-          <Link to="/admin/forgot-password" className="text-sm text-amber-600 hover:underline">
-            Forgot password?
-          </Link>
+          <Link to="/admin/forgot-password" className="text-sm text-amber-600 hover:underline">Forgot password?</Link>
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
+        <button type="submit" disabled={loading}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
@@ -87,57 +83,42 @@ export function AdminLogin() {
       {notFound && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-800 font-semibold mb-1">⚠️ No account found</p>
-          <p className="text-xs text-red-700">
-            No admin account exists with this email. Please register with a valid invite code.
-          </p>
+          <p className="text-xs text-red-700">No admin account exists with this email.</p>
         </div>
       )}
-
       {wrongPass && (
         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
           <p className="text-sm text-orange-800 font-semibold mb-1">❌ Incorrect password</p>
-          <p className="text-xs text-orange-700 mb-2">
-            The password you entered is incorrect. Please try again.
-          </p>
-          <Link to="/admin/forgot-password" className="text-xs text-orange-700 font-medium hover:underline">
-            Reset password →
-          </Link>
+          <p className="text-xs text-orange-700 mb-2">Please try again or reset your password.</p>
+          <Link to="/admin/forgot-password" className="text-xs text-orange-700 font-medium hover:underline">Reset password →</Link>
         </div>
       )}
-
       <p className="text-center text-sm text-gray-500 mt-4">
-        First time?{" "}
-        <Link to="/admin/register" className="text-amber-600 font-medium hover:underline">Register with invite code</Link>
+        First time? <Link to="/admin/register" className="text-amber-600 font-medium hover:underline">Register with invite code</Link>
       </p>
     </AdminAuthLayout>
   );
 }
 
 // ── Admin Register ─────────────────────────────────────────────
-// FIX 4: Two-step register with OTP, like regular users
 export function AdminRegister() {
   const navigate = useNavigate();
-  // const [step, setStep] = useState(1);
-  // const [userId, setUserId] = useState(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", invite_code: "" });
-  // const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [form,         setForm]         = useState({ name: "", email: "", password: "", invite_code: "" });
+  const [loading,      setLoading]      = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showInviteCode, setShowInviteCode] = useState(false);
 
-const handleRegister = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  try {
-    await authAPI.adminRegister(form);
-    toast.success("Admin account created! Please log in.");
-    navigate("/admin/login");
-  } catch (err) {
-    toast.error(err.response?.data?.message || "Registration failed");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authAPI.adminRegister(form);
+      toast.success("Admin account created! Please log in.");
+      navigate("/admin/login");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Registration failed");
+    } finally { setLoading(false); }
+  };
 
   return (
     <AdminAuthLayout title="Admin Registration" subtitle="You need a valid invite code to proceed">
@@ -155,8 +136,8 @@ const handleRegister = async (e) => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <div className="relative">
-            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters"
+              value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -167,24 +148,21 @@ const handleRegister = async (e) => {
           <label className="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
           <div className="relative">
             <input className="input font-mono tracking-widest pr-10"
-              type={showInviteCode ? "text" : "password"}
-              placeholder="XXXX_XXXX_XXXX"
-              value={form.invite_code}
-              onChange={(e) => setForm({ ...form, invite_code: e.target.value })}
-              required />
+              type={showInviteCode ? "text" : "password"} placeholder="XXXX_XXXX_XXXX"
+              value={form.invite_code} onChange={(e) => setForm({ ...form, invite_code: e.target.value })} required />
             <button type="button" onClick={() => setShowInviteCode(!showInviteCode)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showInviteCode ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
+        <button type="submit" disabled={loading}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50">
           {loading ? "Creating..." : "Create Admin Account"}
         </button>
       </form>
       <p className="text-center text-sm text-gray-500 mt-4">
-        Already registered?{" "}
-        <Link to="/admin/login" className="text-amber-600 font-medium hover:underline">Sign in</Link>
+        Already registered? <Link to="/admin/login" className="text-amber-600 font-medium hover:underline">Sign in</Link>
       </p>
     </AdminAuthLayout>
   );
@@ -193,13 +171,13 @@ const handleRegister = async (e) => {
 // ── Admin Forgot Password ──────────────────────────────────────
 export function AdminForgotPassword() {
   const navigate = useNavigate();
-  const [step, setStep]         = useState(1);
-  const [email, setEmail]       = useState("");
-  const [userId, setUserId]     = useState(null);
-  const [otp, setOtp]           = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [step,         setStep]         = useState(1);
+  const [email,        setEmail]        = useState("");
+  const [userId,       setUserId]       = useState(null);
+  const [otp,          setOtp]          = useState("");
+  const [newPassword,  setNewPassword]  = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [loading,      setLoading]      = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -213,9 +191,7 @@ export function AdminForgotPassword() {
       toast.success("OTP sent to your email!");
     } catch (err) {
       toast.error(err.response?.data?.message || "No admin account found with this email");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleResend = async () => {
@@ -223,13 +199,10 @@ export function AdminForgotPassword() {
     try {
       const { data } = await authAPI.forgotPassword({ email });
       setUserId(data.data.user_id);
-      toast.success("OTP resent to your email!");
+      toast.success("OTP resent!");
       setResendCooldown(30);
       const timer = setInterval(() => {
-        setResendCooldown((c) => {
-          if (c <= 1) { clearInterval(timer); return 0; }
-          return c - 1;
-        });
+        setResendCooldown((c) => { if (c <= 1) { clearInterval(timer); return 0; } return c - 1; });
       }, 1000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to resend OTP");
@@ -245,9 +218,7 @@ export function AdminForgotPassword() {
       navigate("/admin/login");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to reset password");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   if (step === 2) return (
@@ -255,19 +226,14 @@ export function AdminForgotPassword() {
       <form onSubmit={handleReset} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">OTP</label>
-          <input
-            className="input text-center text-2xl tracking-[0.5em] font-bold"
-            placeholder="------" maxLength={6}
-            value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            required
-          />
+          <input className="input text-center text-2xl tracking-[0.5em] font-bold" placeholder="------"
+            maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
           <div className="relative">
-            <input className="input pr-10" type={showPassword ? "text" : "password"}
-              placeholder="Min 6 characters" value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+            <input className="input pr-10" type={showPassword ? "text" : "password"} placeholder="Min 6 characters"
+              value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -279,15 +245,10 @@ export function AdminForgotPassword() {
           {loading ? "Resetting..." : "Reset Password"}
         </button>
       </form>
-
-      {/* Resend OTP */}
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-500 mb-2">Didn't receive the OTP?</p>
-        <button
-          onClick={handleResend}
-          disabled={resendLoading || resendCooldown > 0}
-          className="text-sm text-amber-600 font-medium hover:underline disabled:opacity-50 disabled:no-underline"
-        >
+        <button onClick={handleResend} disabled={resendLoading || resendCooldown > 0}
+          className="text-sm text-amber-600 font-medium hover:underline disabled:opacity-50">
           {resendLoading ? "Sending..." : resendCooldown > 0 ? `Resend OTP (${resendCooldown}s)` : "Resend OTP"}
         </button>
       </div>
@@ -311,5 +272,69 @@ export function AdminForgotPassword() {
         <Link to="/admin/login" className="text-amber-600 font-medium hover:underline">← Back to login</Link>
       </p>
     </AdminAuthLayout>
+  );
+}
+
+// ── Admin Change Password (in-session) ───────────────────────
+// FIX 4: Used inside the Admin Dashboard settings page
+export function AdminChangePassword() {
+  const [form,      setForm]      = useState({ current_password: "", new_password: "", confirm_password: "" });
+  const [loading,   setLoading]   = useState(false);
+  const [showPw,    setShowPw]    = useState({ current: false, new: false, confirm: false });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (form.new_password !== form.confirm_password) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (form.new_password.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+    setLoading(true);
+    try {
+      await authAPI.changePassword({
+        current_password: form.current_password,
+        new_password:     form.new_password,
+      });
+      toast.success("Password changed successfully!");
+      setForm({ current_password: "", new_password: "", confirm_password: "" });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to change password");
+    } finally { setLoading(false); }
+  };
+
+  const PasswordField = ({ label, field }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div className="relative">
+        <input className="input pr-10" type={showPw[field] ? "text" : "password"}
+          placeholder="••••••••" required value={form[field]}
+          onChange={(e) => setForm({ ...form, [field]: e.target.value })} />
+        <button type="button" onClick={() => setShowPw((s) => ({ ...s, [field]: !s[field] }))}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          {showPw[field] ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-md">
+      <div className="flex items-center gap-2 mb-6">
+        <Lock size={20} className="text-amber-600" />
+        <h1 className="text-xl font-bold">Change Password</h1>
+      </div>
+      <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+        <PasswordField label="Current Password" field="current_password" />
+        <PasswordField label="New Password" field="new_password" />
+        <PasswordField label="Confirm New Password" field="confirm_password" />
+        <button type="submit" disabled={loading}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 rounded-lg disabled:opacity-50">
+          {loading ? "Changing..." : "Change Password"}
+        </button>
+      </form>
+    </div>
   );
 }

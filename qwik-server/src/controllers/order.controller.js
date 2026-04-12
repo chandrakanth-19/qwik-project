@@ -133,14 +133,14 @@ exports.getCanteenOrders = asyncHandler(async (req, res) => {
   if (status) filter.status = status;
 
   const orders = await Order.find(filter)
-    .populate("user_id", "name email phone")
+    .populate("user_id", "name email phone room_no hall_of_residence")
     .sort({ createdAt: -1 });
   ok(res, orders);
 });
 
 // ── PUT /api/orders/:id/status — merchant updates order status ─
 exports.updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status, merchant_note, unavailable_item_ids } = req.body;
+  const { status, merchant_note, unavailable_item_ids, eta } = req.body;
   const order = await Order.findById(req.params.id);
   if (!order) return notFound(res, "Order not found");
 
@@ -164,6 +164,7 @@ exports.updateOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = status;
   if (merchant_note) order.merchant_note = merchant_note;
+  if (eta !== undefined) order.eta = eta;
   await order.save();
   ok(res, order, "Order status updated");
 });

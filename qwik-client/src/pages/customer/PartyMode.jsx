@@ -1,17 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { PartyPopper, Cake, UtensilsCrossed } from "lucide-react";
+import { PartyPopper, Cake, UtensilsCrossed, CheckCircle } from "lucide-react";
 import { canteenAPI, reservationAPI } from "../../api";
 import { Spinner } from "../../components";
 
 export default function PartyMode() {
-  const [tab, setTab]         = useState("table"); // "table" | "cake"
-  const [canteens, setCanteens] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [tab,       setTab]       = useState("table");
+  const [canteens,  setCanteens]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
 
-  const [tableForm, setTableForm] = useState({ canteen_id: "", date: "", time_slot: "", party_size: 2 });
-  const [cakeForm,  setCakeForm]  = useState({ canteen_id: "", date: "", time_slot: "", cake_details: { flavor: "", message: "", size: "1kg" } });
+  // FIX 5: submitting flag prevents double-submit; successPopup shows confirmation
+  const [submitting,    setSubmitting]    = useState(false);
+  const [successPopup,  setSuccessPopup]  = useState(false);
+  const [successType,   setSuccessType]   = useState("");
+  // Ref guard — blocks the second click even if state update hasn't flushed yet
+  const isSubmittingRef = useRef(false);
+
+  const [tableForm, setTableForm] = useState({
+    canteen_id: "", date: "", time_slot: "", party_size: 2,
+  });
+  const [cakeForm, setCakeForm] = useState({
+    canteen_id: "", date: "", time_slot: "",
+    cake_details: { flavor: "", message: "", size: "1kg" },
+  });
 
   useEffect(() => {
     canteenAPI.getAll().then(({ data }) => { setCanteens(data.data); setLoading(false); });
@@ -19,16 +30,53 @@ export default function PartyMode() {
 
   const submit = async (e) => {
     e.preventDefault();
+
+    // FIX 5: Hard guard — prevent duplicate submissions
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
+
     try {
+      // FIX 2: Validate cake order is at least 4 hours ahead (client-side guard)
+      if (tab === "cake") {
+        const { date, time_slot } = cakeForm;
+        if (date && time_slot) {
+          const [year, month, day] = date.split("-").map(Number);
+          const [hour, minute]     = time_slot.split(":").map(Number);
+          const reservationTime = new Date(year, month - 1, day, hour, minute);
+          const hoursAhead = (reservationTime - Date.now()) / (1000 * 60 * 60);
+          if (hoursAhead < 4) {
+            toast.error("Cake orders must be placed at least 4 hours in advance. Please pick a later time.");
+            return;
+          }
+        }
+      }
+
       const payload = tab === "table"
         ? { ...tableForm, type: "table" }
         : { ...cakeForm,  type: "cake_order" };
+
       await reservationAPI.create(payload);
-      toast.success("Reservation request sent to merchant!");
+
+      // FIX 5: Show success popup instead of just a toast
+      setSuccessType(tab);
+      setSuccessPopup(true);
+
+      // Reset the form
+      if (tab === "table") {
+        setTableForm({ canteen_id: "", date: "", time_slot: "", party_size: 2 });
+      } else {
+        setCakeForm({
+          canteen_id: "", date: "", time_slot: "",
+          cake_details: { flavor: "", message: "", size: "1kg" },
+        });
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit");
-    } finally { setSubmitting(false); }
+    } finally {
+      setSubmitting(false);
+      isSubmittingRef.current = false;
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
@@ -37,6 +85,32 @@ export default function PartyMode() {
 
   return (
     <div className="max-w-lg">
+      {/* FIX 5: Success popup */}
+      {successPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
+            <div className="flex justify-center mb-4">
+              <CheckCircle size={56} className="text-green-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Request Sent!</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {successType === "table"
+                ? "Your table reservation request has been sent to the merchant. You'll hear back soon!"
+                : "Your cake pre-order request has been sent! The merchant will confirm availability."}
+            </p>
+            <p className="text-xs text-gray-400 mb-5">
+              You can check the status in <strong>Party History</strong>.
+            </p>
+            <button
+              onClick={() => setSuccessPopup(false)}
+              className="btn-primary w-full"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-6">
         <PartyPopper className="text-pink-500" size={24} />
         <h1 className="text-xl font-bold">Party Mode</h1>
@@ -57,7 +131,7 @@ export default function PartyMode() {
       </div>
 
       <form onSubmit={submit} className="card p-5 space-y-4">
-        {/* Common fields */}
+        {/* Canteen */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Canteen</label>
           <select className="input" required
@@ -70,6 +144,7 @@ export default function PartyMode() {
           </select>
         </div>
 
+        {/* Date + Time */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -128,9 +203,12 @@ export default function PartyMode() {
           </>
         )}
 
-        <button type="submit" disabled={submitting}
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50">
-          {submitting ? "Sending request..." : "Send Request"}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {submitting ? "Sending..." : "Send Request"}
         </button>
       </form>
     </div>

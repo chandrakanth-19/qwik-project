@@ -1,14 +1,14 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, UserCheck, Users, Store, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, UserCheck, Users, Store, Settings, LogOut, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const links = [
-  { to: "/admin/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/admin/approvals",   icon: UserCheck,       label: "Merchant Approvals" },
-  { to: "/admin/users",       icon: Users,           label: "User Management" },
-  { to: "/admin/canteens",    icon: Store,           label: "Canteen Management" },
-  { to: "/admin/settings",    icon: Settings,        label: "System Settings" },
-  { to: "/admin/merchants", icon: Store, label: "Manage Merchants" },
+  { to: "/admin/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/admin/approvals",         icon: UserCheck,       label: "Merchant Approvals" },
+  { to: "/admin/users",             icon: Users,           label: "User Management" },
+  { to: "/admin/canteens",          icon: Store,           label: "Canteen Management" },
+  { to: "/admin/merchants",         icon: Store,           label: "Manage Merchants" },
+  { to: "/admin/change-password",   icon: Lock,            label: "Change Password" },
 ];
 
 export default function AdminSidebar({ collapsed }) {
@@ -21,7 +21,7 @@ export default function AdminSidebar({ collapsed }) {
         {!collapsed && <span className="font-bold text-lg text-amber-700">Super Admin</span>}
       </div>
 
-      <div className="flex-1 space-y-1 px-2">
+      <div className="flex-1 space-y-1 px-2 overflow-y-auto">
         {links.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}

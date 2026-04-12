@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const ctrl   = require("../controllers/user.controller");
 const { protect } = require("../middleware/auth.middleware");
+const { authorize } = require("../middleware/role.middleware");
 const multer = require("multer");
 const path   = require("path");
 const fs     = require("fs");
@@ -10,13 +11,19 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename:    (req, file, cb) => cb(null, `${req.user._id}-${Date.now()}${path.extname(file.originalname)}`),
+  filename:    (req, file, cb) =>
+    cb(null, `${req.user._id}-${Date.now()}${path.extname(file.originalname)}`),
 });
-const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } }); // 2MB
+const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
 
 router.use(protect);
-router.get("/me",        ctrl.getMe);
-router.put("/me",        ctrl.updateMe);
-router.post("/me/photo", upload.single("photo"), ctrl.uploadPhoto);
+
+router.get("/me",         ctrl.getMe);
+router.put("/me",         ctrl.updateMe);
+router.post("/me/photo",  upload.single("photo"), ctrl.uploadPhoto);
+
+// FIX 3: Merchant-scoped customer management
+router.get("/canteen-customers",          authorize("merchant"), ctrl.getCanteenCustomers);
+router.put("/:id/merchant-block",         authorize("merchant"), ctrl.merchantToggleBlock);
 
 module.exports = router;

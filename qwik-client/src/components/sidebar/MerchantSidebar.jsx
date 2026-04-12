@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, Clock, CalendarClock, UserCircle, Star } from "lucide-react";
+import { LayoutDashboard, ListOrdered, UtensilsCrossed, PartyPopper, Settings, BarChart2, LogOut, Clock, CalendarClock, UserCircle, Star, Users } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const links = [
@@ -8,11 +8,12 @@ const links = [
   { to: "/merchant/order-history", icon: Clock,           label: "Order History" },
   { to: "/merchant/menu",          icon: UtensilsCrossed, label: "Menu Manager" },
   { to: "/merchant/reviews",       icon: Star,            label: "Customer Reviews" },
+  // FIX 3: Customer management link
+  { to: "/merchant/customers",     icon: Users,           label: "Customers" },
   { to: "/merchant/party",         icon: PartyPopper,     label: "Party Requests" },
   { to: "/merchant/party-history", icon: CalendarClock,   label: "Party History" },
   { to: "/merchant/settings",      icon: Settings,        label: "Canteen Settings" },
   { to: "/merchant/analytics",     icon: BarChart2,       label: "Analytics" },
-  // FIX 2: Merchant profile link
   { to: "/merchant/profile",       icon: UserCircle,      label: "My Profile" },
 ];
 
@@ -26,7 +27,7 @@ export default function MerchantSidebar({ collapsed }) {
         {!collapsed && <span className="font-bold text-lg text-purple-700">Qwik Merchant</span>}
       </div>
 
-      <div className="flex-1 space-y-1 px-2">
+      <div className="flex-1 space-y-1 px-2 overflow-y-auto">
         {links.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
