@@ -9,7 +9,7 @@ const links = [
   { to: "/merchant/menu",          icon: UtensilsCrossed, label: "Menu Manager" },
   { to: "/merchant/reviews",       icon: Star,            label: "Customer Reviews" },
   // FIX 3: Customer management link
-  { to: "/merchant/customers",     icon: Users,           label: "Customers" },
+  // { to: "/merchant/customers",     icon: Users,           label: "Customers" },
   { to: "/merchant/party",         icon: PartyPopper,     label: "Party Requests" },
   { to: "/merchant/party-history", icon: CalendarClock,   label: "Party History" },
   { to: "/merchant/settings",      icon: Settings,        label: "Canteen Settings" },
