@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ToggleLeft, ToggleRight } from "lucide-react";
+import { ToggleLeft, ToggleRight, Clock } from "lucide-react";
 import { canteenAPI, orderAPI } from "../../api";
 import { Spinner } from "../../components";
 
@@ -9,11 +9,11 @@ export function CanteenSettings() {
   const [canteen, setCanteen] = useState(null);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     canteenAPI.getMine().then(({ data }) => {
-      // getMine returns an array; merchant always has at most one canteen
       const c = Array.isArray(data.data) ? data.data[0] : data.data;
       setCanteen(c);
       setForm({
@@ -25,14 +25,46 @@ export function CanteenSettings() {
     });
   }, []);
 
+  /**
+   * Toggle logic:
+   *   - If currently in "auto" mode (manual_override === null):
+   *       → schedule is open  → clicking closes it  (action: "close")
+   *       → schedule is closed → clicking opens it  (action: "open")
+   *   - If merchant has force-opened (manual_override === true):
+   *       → clicking goes back to auto              (action: "auto")
+   *   - If merchant has force-closed (manual_override === false):
+   *       → clicking goes back to auto              (action: "auto")
+   *
+   * This means one tap always moves toward "normal" behaviour,
+   * and a second tap takes you to the opposite override if needed.
+   */
   const toggleOpen = async () => {
-    const newStatus = !canteen.is_open;
+    setToggling(true);
     try {
-      const { data } = await canteenAPI.updateStatus(canteen._id, { is_open: newStatus });
+      let action;
+      const override = canteen.manual_override; // true | false | null
+
+      if (override === null) {
+        // Following schedule — toggle against the schedule
+        action = canteen.schedule_open ? "close" : "open";
+      } else {
+        // Already overridden — one tap goes back to auto (schedule)
+        action = "auto";
+      }
+
+      const { data } = await canteenAPI.updateStatus(canteen._id, action);
       setCanteen(data.data);
-      toast.success(`Canteen is now ${data.data.is_open ? "open" : "closed"}`);
+
+      const c = data.data;
+      if (c.manual_override === null) {
+        toast.success(`Back to schedule — canteen is ${c.is_open ? "open" : "closed"}`);
+      } else {
+        toast.success(`Canteen manually ${c.is_open ? "opened" : "closed"}`);
+      }
     } catch (err) {
       toast.error("Failed to update canteen status. Please try again.");
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -50,6 +82,23 @@ export function CanteenSettings() {
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
 
+  // Derive display state
+  const isOpen      = canteen.is_open;
+  const isOverride  = canteen.manual_override !== null && canteen.manual_override !== undefined;
+  const scheduleOpen = canteen.schedule_open;
+
+  // Sub-label: tell the merchant what mode they're in
+  let statusLabel;
+  if (isOverride) {
+    statusLabel = isOpen
+      ? "Manually opened (outside schedule)"
+      : "Manually closed (overriding schedule)";
+  } else {
+    statusLabel = scheduleOpen
+      ? "Open — following your schedule"
+      : "Closed — following your schedule";
+  }
+
   return (
     <div className="max-w-lg">
       <h1 className="text-xl font-bold mb-6">Canteen Settings</h1>
@@ -58,12 +107,22 @@ export function CanteenSettings() {
       <div className="card p-5 mb-4 flex items-center justify-between">
         <div>
           <p className="font-medium">Canteen Status</p>
-          <p className="text-sm text-gray-500">Customers {canteen.is_open ? "can" : "cannot"} place orders</p>
+          <p className="text-sm text-gray-500">{statusLabel}</p>
+          {isOverride && (
+            <p className="text-xs text-brand-500 mt-1 flex items-center gap-1">
+              <Clock size={11} />
+              Tap again to return to schedule
+            </p>
+          )}
         </div>
-        <button onClick={toggleOpen} className="flex items-center gap-2">
-          {canteen.is_open
+        <button
+          onClick={toggleOpen}
+          disabled={toggling}
+          className="flex items-center gap-2 disabled:opacity-50"
+        >
+          {isOpen
             ? <ToggleRight size={36} className="text-brand-400" />
-            : <ToggleLeft size={36} className="text-gray-400" />
+            : <ToggleLeft  size={36} className="text-gray-400"  />
           }
         </button>
       </div>
