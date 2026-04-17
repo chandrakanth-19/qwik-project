@@ -164,7 +164,16 @@ exports.updateOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = status;
   if (merchant_note) order.merchant_note = merchant_note;
-  if (eta !== undefined) order.eta = eta;
+  if (eta !== undefined) {
+    order.eta = eta;
+    // Compute absolute deadline: now + eta minutes so client can show real-time countdown
+    const etaMins = parseInt(eta, 10);
+    if (!isNaN(etaMins) && etaMins > 0) {
+      order.eta_deadline = new Date(Date.now() + etaMins * 60 * 1000);
+    } else {
+      order.eta_deadline = null;
+    }
+  }
   await order.save();
   ok(res, order, "Order status updated");
 });
