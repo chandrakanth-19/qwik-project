@@ -60,7 +60,9 @@ exports.updateStatus = asyncHandler(async (req, res) => {
     { new: true }
   );
   if (!canteen) return notFound(res, "Canteen not found or not yours");
-  ok(res, withComputedStatus(canteen), `Canteen marked ${is_open ? "open" : "closed"}`);
+  // Return the raw canteen object (not clock-overridden) so the merchant's
+  // explicit toggle is always reflected correctly in the UI.
+  ok(res, canteen.toObject(), `Canteen marked ${is_open ? "open" : "closed"}`);
 });
 
 // PUT /api/canteens/:id — update canteen details (merchant)
