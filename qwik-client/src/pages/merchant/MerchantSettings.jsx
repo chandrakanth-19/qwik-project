@@ -26,9 +26,14 @@ export function CanteenSettings() {
   }, []);
 
   const toggleOpen = async () => {
-    const { data } = await canteenAPI.updateStatus(canteen._id, { is_open: !canteen.is_open });
-    setCanteen(data.data);
-    toast.success(`Canteen is now ${data.data.is_open ? "open" : "closed"}`);
+    const newStatus = !canteen.is_open;
+    try {
+      const { data } = await canteenAPI.updateStatus(canteen._id, { is_open: newStatus });
+      setCanteen(data.data);
+      toast.success(`Canteen is now ${data.data.is_open ? "open" : "closed"}`);
+    } catch (err) {
+      toast.error("Failed to update canteen status. Please try again.");
+    }
   };
 
   const handleSave = async (e) => {
