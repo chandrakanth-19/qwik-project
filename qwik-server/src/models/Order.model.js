@@ -27,7 +27,10 @@ const orderSchema = new mongoose.Schema(
     total_amount: { type: Number, required: true },
     merchant_note: { type: String, default: "" }, // reason for partial/full reject
     // ETA set by merchant when accepting the order (free-text, e.g. "15 mins")
+    // ETA in minutes set by merchant when accepting
     eta: { type: String, default: "" },
+    // Absolute UTC deadline computed from eta minutes + time merchant accepted
+    eta_deadline: { type: Date, default: null },
     payment_id: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", default: null },
     is_rated: { type: Boolean, default: false },
     placed_at: { type: Date, default: Date.now },
