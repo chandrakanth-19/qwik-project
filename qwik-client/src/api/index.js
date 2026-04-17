@@ -31,7 +31,8 @@ export const canteenAPI = {
   getOne:       (id)    => api.get(`/canteens/${id}`),
   getMine:      ()      => api.get("/canteens/mine"),
   update:       (id, d) => api.put(`/canteens/${id}`, d),
-  updateStatus: (id, d) => api.put(`/canteens/${id}/status`, d),
+  // action: "open" | "close" | "auto"
+  updateStatus: (id, action) => api.put(`/canteens/${id}/status`, { action }),
 };
 
 // ── MENU ─────────────────────────────────────────────────────
