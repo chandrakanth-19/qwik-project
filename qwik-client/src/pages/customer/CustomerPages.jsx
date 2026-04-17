@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Minus, Plus, Trash2, RotateCcw, Eye, Lock } from "lucide-react";
@@ -125,6 +125,62 @@ export function Checkout() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ETA Countdown — shows live timer after payment, based on eta_deadline
+// ─────────────────────────────────────────────────────────────
+function EtaCountdown({ etaDeadline, etaMins, status }) {
+  const ACTIVE_STATUSES = ["PAID", "PREPARING", "READY"];
+  const [remaining, setRemaining] = useState(null); // seconds remaining
+
+  useEffect(() => {
+    if (!etaDeadline || !ACTIVE_STATUSES.includes(status)) {
+      setRemaining(null);
+      return;
+    }
+    const tick = () => {
+      const secs = Math.round((new Date(etaDeadline) - Date.now()) / 1000);
+      setRemaining(secs);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [etaDeadline, status]);
+
+  // Before payment or no deadline: just show the raw ETA minutes
+  if (!etaDeadline || !ACTIVE_STATUSES.includes(status)) {
+    if (!etaMins) return null;
+    return (
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+        <span className="text-base">⏱</span>
+        <span><span className="font-semibold">ETA:</span> {etaMins} min{etaMins !== "1" ? "s" : ""}</span>
+      </div>
+    );
+  }
+
+  if (remaining === null) return null;
+
+  const isOverdue = remaining <= 0;
+  const isWarning = !isOverdue && remaining <= 120; // under 2 mins
+  const mins = Math.floor(Math.abs(remaining) / 60);
+  const secs = Math.abs(remaining) % 60;
+  const pad  = (n) => String(n).padStart(2, "0");
+
+  const bgClass  = isOverdue ? "bg-red-50 border border-red-200"   : isWarning ? "bg-orange-50 border border-orange-200" : "bg-green-50";
+  const txtClass = isOverdue ? "text-red-700"  : isWarning ? "text-orange-700" : "text-green-700";
+
+  return (
+    <div className={}>
+      <div className={"flex items-center gap-1.5 text-sm font-semibold " + txtClass}>
+        <span className="text-base">{isOverdue ? "⚠️" : isWarning ? "⏰" : "⏱"}</span>
+        <span>{isOverdue ? "Order overdue" : "Ready in"}</span>
+      </div>
+      <span className={"font-mono font-bold text-lg tabular-nums " + txtClass}>
+        {isOverdue ? "+" : ""}{pad(mins)}:{pad(secs)}
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Order Tracking (polling)
 // ─────────────────────────────────────────────────────────────
 export function OrderTracking({ orderId }) {
@@ -203,7 +259,7 @@ export function OrderTracking({ orderId }) {
             )}
             {order.eta && (
               <p className="text-sm text-green-700 font-medium bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-3 flex items-center gap-1.5">
-                ⏱ ETA: {order.eta}
+                ⏱ Estimated ready in <strong className="ml-1">{order.eta} min{order.eta !== "1" ? "s" : ""}</strong>
               </p>
             )}
             <p className="text-lg font-bold text-gray-800 mb-4">Total: ₹{order.total_amount}</p>
@@ -274,12 +330,13 @@ export function OrderTracking({ orderId }) {
           </div>
         )}
 
-        {/* FIX 5: Show ETA if the merchant provided one */}
+        {/* Live ETA countdown — shows raw mins before payment, live timer after */}
         {order.eta && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
-            <span className="text-base">⏱</span>
-            <span><span className="font-semibold">ETA:</span> {order.eta}</span>
-          </div>
+          <EtaCountdown
+            etaDeadline={order.eta_deadline}
+            etaMins={order.eta}
+            status={order.status}
+          />
         )}
 
         <div className="space-y-1 mt-3 pt-3 border-t">
