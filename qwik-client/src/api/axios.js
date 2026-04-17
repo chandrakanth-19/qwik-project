@@ -37,7 +37,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("qwik_token");
+  // Check both storages: localStorage (rememberMe=true) and sessionStorage (rememberMe=false)
+  const token = localStorage.getItem("qwik_token") || sessionStorage.getItem("qwik_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -51,6 +52,7 @@ api.interceptors.response.use(
     // Only auto-redirect on 401 for protected routes, NOT auth endpoints
     if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.clear();
+      sessionStorage.clear();
       window.location.href = "/login";
     }
     if (err.response?.status === 404) {
@@ -64,4 +66,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
