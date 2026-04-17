@@ -34,6 +34,17 @@ const canteenSchema = new mongoose.Schema(
       type:    Boolean,
       default: false,
     },
+    /**
+     * manual_override controls whether the merchant has explicitly
+     * overridden the schedule:
+     *   null  → follow the opening_time / closing_time schedule
+     *   true  → force open (even outside scheduled hours)
+     *   false → force closed (even during scheduled hours)
+     */
+    manual_override: {
+      type:    Boolean,
+      default: null,
+    },
     // Array of ISO date strings: ["2026-04-14", "2026-04-15"]
     unavailable_days: {
       type:    [String],
